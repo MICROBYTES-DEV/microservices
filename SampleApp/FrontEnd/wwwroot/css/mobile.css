@@ -1,0 +1,58 @@
+@media (max-width: 640px) {
+    body { padding-bottom: 74px; overflow-x: hidden; }
+    .page { display: block; }
+    .sidebar { position: fixed; inset: auto 0 0; z-index: 20; width: 100%; height: 70px; min-height: 70px; padding: 0 10px; border-top: 1px solid #2b3d53; box-shadow: 0 -10px 24px rgba(20,35,56,.12); }
+    .brand-block, .navbar-toggler, .focus-card, .sidebar-footer { display: none; }
+    .nav-scrollable { display: block; height: 100%; overflow: visible; }
+    .nav-list { height: 100%; display: flex; flex-direction: row; align-items: stretch; justify-content: space-around; gap: 3px; }
+    .nav-label { display: none; }
+    .nav-link, .nav-link:not(.active)::after { display: flex; flex: 1; flex-direction: column; justify-content: center; gap: 4px; min-height: 0; padding: 7px 3px; border-radius: 8px; color: #8c9caf; font-size: 10px; line-height: 1; text-align: center; }
+    .nav-link.active, .nav-link:hover { color: white; background: #263950; }
+    .nav-icon { width: auto; font-size: 17px; line-height: 1; }
+    .nav-count { display: none; }
+    .topbar { gap: 8px; }
+    .breadcrumbs { gap: 6px; font-size: 11px; }
+    .breadcrumbs span:first-child, .breadcrumbs span:nth-child(2) { display: none; }
+    .top-actions { gap: 7px; }
+    .toolbar-action { min-width: 36px; min-height: 36px; padding: 5px 9px; font-size: 0; }
+    .toolbar-action span { margin: 0; font-size: 19px; }
+    .settings-button { display: none; }
+    .notification-button, .top-avatar { width: 36px; height: 36px; }
+    .hero-row h1 { font-size: 42px; }
+    .hero-copy { font-size: 13px; margin-top: 14px; }
+    .search-panel { padding: 12px; border-radius: 9px; }
+    .search-input-wrap { height: 48px; padding: 0 11px; }
+    .search-input-wrap kbd { display: none; }
+    .search-input-wrap input { min-width: 0; font-size: 13px; }
+    .suggestions { flex-wrap: wrap; gap: 7px; margin-top: 11px; }
+    .suggestions span { width: 100%; }
+    .suggestions button { padding: 8px 10px; font-size: 11px; }
+    .filter-row { align-items: start; gap: 10px; margin: 26px 0 18px; }
+    .filter-tabs { flex: 1; gap: 18px; overflow: auto; white-space: nowrap; padding-bottom: 3px; scrollbar-width: none; }
+    .filter-tabs::-webkit-scrollbar { display: none; }
+    .filter-tabs button { font-size: 11px; }
+    .filter-button { flex: 0 0 auto; padding: 7px 9px; font-size: 11px; }
+    .section-heading h2 { font-size: 16px; }
+    .section-heading p { font-size: 11px; }
+    .paper-card { grid-template-columns: 42px minmax(0, 1fr); gap: 12px; align-items: start; padding: 14px; }
+    .paper-color { width: 42px; height: 52px; font-size: 19px; }
+    .paper-main h3 { font-size: 14px; line-height: 1.25; margin-top: 4px; }
+    .paper-main p { line-height: 1.45; }
+    .paper-meta, .paper-footer { flex-wrap: wrap; }
+    .paper-footer { gap: 5px; }
+    .paper-actions { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; width: 100%; }
+    .save-button, .open-button { min-height: 40px; width: 100%; }
+    .activity-panel { padding-top: 24px; }
+    .modal-backdrop { align-items: end; padding: 0; }
+    .utility-modal, .pdf-modal { width: 100%; max-height: 92vh; border-radius: 16px 16px 0 0; }
+    .utility-modal header { padding: 22px 20px 16px; }
+    .upload-form { padding: 18px 20px 24px; }
+    .modal-actions { position: sticky; bottom: 0; padding-top: 10px; background: white; }
+    .primary-button, .secondary-button { min-height: 42px; }
+    .pdf-modal header { padding: 18px 20px; }
+    .pdf-toolbar { padding: 10px 20px; flex-wrap: wrap; gap: 10px; }
+    .pdf-page { width: calc(100% - 28px); margin: 8px auto 18px; padding: 26px 20px; min-height: 460px; }
+    .pdf-page h3 { font-size: 18px; margin-top: 38px; }
+    .fake-options { grid-template-columns: 1fr; gap: 7px; }
+    .pdf-footer { left: 20px; right: 20px; bottom: 18px; }
+}

@@ -4,7 +4,7 @@
   publish = "publish/wwwroot"
 
 [build.environment]
-  DOTNET_VERSION = "10.0.401"
+  DOTNET_VERSION = "8.0.131"
 
 [[redirects]]
   from = "/*"

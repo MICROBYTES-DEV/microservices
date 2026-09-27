@@ -20,6 +20,7 @@ else
     @if (currentUser is null)
     {
         <section class="auth-strip"><div><strong>Make this workspace yours</strong><span>Sign in to upload papers and save your progress.</span></div><a href="/login">Sign in <span>-&gt;</span></a></section>
+        <section class="account-gate"><span class="modal-kicker">Private workspace</span><h2>Your papers, your progress.</h2><p>Sign in to see your personalized PYQ feed, saved papers, activity, and upload tools.</p><a class="primary-button" href="/login">Sign in to continue <span>-&gt;</span></a></section>
     }
     <button class="mobile-upload-action" @onclick="OpenUpload"><span>+</span> Upload PYQ</button>
     @if (!Appwrite.IsConfigured)
@@ -34,10 +35,13 @@ else
     {
         <section class="notification-panel"><div class="notification-panel-head"><div><span class="modal-kicker">Stay in the loop</span><h2>Notifications</h2></div><button class="close-button" @onclick="MarkNotificationsRead">Mark read</button></div><p class="notification-copy">Choose what you want to hear about. We will show related PYQ drops and practice nudges.</p><div class="interest-chips">@foreach (var interest in Interests) { <button class="interest-chip @(selectedInterests.Contains(interest) ? "active" : "")" @onclick="() => ToggleInterest(interest)">@interest <span>@(selectedInterests.Contains(interest) ? "on" : "+")</span></button> }</div><div class="notification-list">@foreach (var notification in Notifications.Take(4)) { <div class="notification-item @(notification.IsNew ? "new" : "")"><span class="notification-dot"></span><div><strong>@notification.Title</strong><p>@notification.Body</p><time>@notification.When</time></div></div> }</div><button class="browser-notification-button" @onclick="EnableBrowserNotifications">Enable phone/browser alerts</button></section>
     }
+    @if (currentUser is not null)
+    {
     <section class="hero-row"><div><p class="eyebrow">YOUR STUDY WORKSPACE</p><h1>Build your <span>edge.</span></h1><p class="hero-copy">Pick a paper, find your pattern, and turn every wrong answer into your next advantage.</p></div><div class="streak-card"><div class="streak-icon">@Activities.Count</div><div><strong>Recent activity</strong><span>Synced from Appwrite</span></div></div></section>
     <section class="search-panel"><div class="search-input-wrap"><span class="search-icon">/</span><input @bind="searchTerm" @bind:event="oninput" placeholder="Search by exam, subject, year, topic..." /><kbd>CTRL K</kbd></div><div class="suggestions"><span>Try searching</span><button @onclick="SearchJee">JEE Main physics</button><button @onclick="SearchUpsc">UPSC polity</button><button @onclick="SearchNeet">NEET 2024</button></div></section>
     <div class="filter-row" aria-label="Active filter: @activeTab"><div class="filter-tabs"><button class="selected" @onclick="SelectAll">All papers</button><button @onclick="SelectPracticed">Most practiced</button><button @onclick="SelectNew">New uploads</button></div><button class="filter-button">Filter <span>+</span></button></div>
     <section class="content-grid"><div class="papers-column"><div class="section-heading"><div><h2>Recommended for you</h2><p>Curated from your recent practice</p></div><a href="?view=all">View all <span>-&gt;</span></a></div>@foreach (var paper in FilteredPapers) { <article class="paper-card"><div class="paper-color @paper.ColorClass"><span>@paper.Code</span></div><div class="paper-main"><div class="paper-meta"><span>@paper.Exam</span><span class="dot">.</span><span>@paper.Year</span><span class="level @paper.LevelClass">@paper.Level</span></div><h3>@paper.Title</h3><p>@paper.Description</p><div class="paper-footer"><span>@paper.Questions questions</span><span class="dot">.</span><span>@paper.Duration min</span><span class="topic-tag">@paper.Topic</span></div></div><div class="paper-actions"><button class="@SaveClass(paper)" title="Save paper" @onclick="() => ToggleSave(paper)">@SaveLabel(paper)</button><button class="open-button" @onclick="() => OpenViewer(paper)">Open paper <span>-&gt;</span></button></div></article> } @if (!FilteredPapers.Any()) { <div class="empty-state">No papers found. Try a broader search.</div> }</div><aside class="activity-panel"><div class="section-heading"><div><h2>Recent activity</h2><p>Your practice trail</p></div><a href="?view=activity">See all</a></div><div class="activity-list">@foreach (var item in Activities) { <div class="activity-item"><span class="activity-dot @item.DotClass"></span><div><strong>@item.Title</strong><span>@item.Detail</span></div><time>@item.When</time></div> }</div><div class="insight-box"><span class="insight-symbol">i</span><div><strong>Small insight</strong><p>You are 18% faster on mechanics than last week.</p></div></div></aside></section>
+    }
 </div>
 }
 
@@ -120,7 +124,16 @@ else
         selectedPdf = args.File;
         uploadError = selectedPdf.Size > 50 * 1024 * 1024 ? "PDF must be smaller than 50 MB." : string.Empty;
     }
-    private void OpenAccount() => showAccountModal = true;
+    private void OpenAccount()
+    {
+        if (currentUser is null)
+        {
+            Navigation.NavigateTo("/login");
+            return;
+        }
+
+        showAccountModal = true;
+    }
     private void CloseAccount() => showAccountModal = false;
     private void OpenSettings() => showSettingsModal = true;
     private void CloseSettings() => showSettingsModal = false;
@@ -241,6 +254,12 @@ else
         {
             await Appwrite.InitializeAsync();
             currentUser = await Appwrite.GetCurrentUserAsync();
+            if (currentUser is null)
+            {
+                isLoading = false;
+                return;
+            }
+
             var paperDocuments = await Appwrite.ListDocumentsAsync(Appwrite.PapersCollectionId);
             var activityDocuments = await Appwrite.ListDocumentsAsync(Appwrite.ActivitiesCollectionId);
             Papers.AddRange(paperDocuments.Select(MapPaper));
@@ -249,6 +268,10 @@ else
         catch (HttpRequestException)
         {
             dataError = "Unable to load Appwrite data. Check the project ID, database ID, and collection permissions.";
+        }
+        catch (Exception exception)
+        {
+            dataError = $"Workspace setup error: {exception.Message}";
         }
         finally
         {

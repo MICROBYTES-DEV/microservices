@@ -1,5 +1,6 @@
 @page "/"
 @inject IJSRuntime JS
+@inject FrontEnd.Services.AppwriteClient Appwrite
 
 @if (isLoading)
 {
@@ -14,12 +15,20 @@
 else
 {
 <div class="workspace">
-    <header class="topbar"><div class="breadcrumbs"><span>Workspace</span><span>/</span><strong>Discover</strong></div><div class="top-actions"><button class="toolbar-action" @onclick="OpenUpload">Upload PYQ <span>+</span></button><button class="notification-button" title="Notifications" @onclick="ToggleNotifications">!@if (unreadCount > 0) { <span class="notification-badge">@unreadCount</span> }</button><button class="top-avatar" title="Account" @onclick="OpenAccount">AK</button><button class="settings-button" title="Settings" @onclick="OpenSettings">Settings</button></div></header>
+    <header class="topbar"><div class="breadcrumbs"><span>Workspace</span><span>/</span><strong>Discover</strong></div><div class="top-actions"><button class="toolbar-action" @onclick="OpenUpload">Upload PYQ <span>+</span></button><button class="notification-button" title="Notifications" @onclick="ToggleNotifications">!@if (unreadCount > 0) { <span class="notification-badge">@unreadCount</span> }</button><button class="top-avatar" title="Account" @onclick="OpenAccount">@UserInitials</button><button class="settings-button" title="Settings" @onclick="OpenSettings">Settings</button></div></header>
+    @if (!Appwrite.IsConfigured)
+    {
+        <div class="empty-state">Connect your Appwrite Project ID and Database ID to load the library.</div>
+    }
+    else if (!string.IsNullOrWhiteSpace(dataError))
+    {
+        <div class="empty-state">@dataError</div>
+    }
     @if (showNotifications)
     {
         <section class="notification-panel"><div class="notification-panel-head"><div><span class="modal-kicker">Stay in the loop</span><h2>Notifications</h2></div><button class="close-button" @onclick="MarkNotificationsRead">Mark read</button></div><p class="notification-copy">Choose what you want to hear about. We will show related PYQ drops and practice nudges.</p><div class="interest-chips">@foreach (var interest in Interests) { <button class="interest-chip @(selectedInterests.Contains(interest) ? "active" : "")" @onclick="() => ToggleInterest(interest)">@interest <span>@(selectedInterests.Contains(interest) ? "on" : "+")</span></button> }</div><div class="notification-list">@foreach (var notification in Notifications.Take(4)) { <div class="notification-item @(notification.IsNew ? "new" : "")"><span class="notification-dot"></span><div><strong>@notification.Title</strong><p>@notification.Body</p><time>@notification.When</time></div></div> }</div><button class="browser-notification-button" @onclick="EnableBrowserNotifications">Enable phone/browser alerts</button></section>
     }
-    <section class="hero-row"><div><p class="eyebrow">SATURDAY, 26 SEPTEMBER 2026</p><h1>Build your <span>edge.</span></h1><p class="hero-copy">Pick a paper, find your pattern, and turn every wrong answer into your next advantage.</p></div><div class="streak-card"><div class="streak-icon">7</div><div><strong>7 day streak</strong><span>Keep the momentum going</span></div></div></section>
+    <section class="hero-row"><div><p class="eyebrow">YOUR STUDY WORKSPACE</p><h1>Build your <span>edge.</span></h1><p class="hero-copy">Pick a paper, find your pattern, and turn every wrong answer into your next advantage.</p></div><div class="streak-card"><div class="streak-icon">@Activities.Count</div><div><strong>Recent activity</strong><span>Synced from Appwrite</span></div></div></section>
     <section class="search-panel"><div class="search-input-wrap"><span class="search-icon">/</span><input @bind="searchTerm" @bind:event="oninput" placeholder="Search by exam, subject, year, topic..." /><kbd>CTRL K</kbd></div><div class="suggestions"><span>Try searching</span><button @onclick="SearchJee">JEE Main physics</button><button @onclick="SearchUpsc">UPSC polity</button><button @onclick="SearchNeet">NEET 2024</button></div></section>
     <div class="filter-row" aria-label="Active filter: @activeTab"><div class="filter-tabs"><button class="selected" @onclick="SelectAll">All papers</button><button @onclick="SelectPracticed">Most practiced</button><button @onclick="SelectNew">New uploads</button></div><button class="filter-button">Filter <span>+</span></button></div>
     <section class="content-grid"><div class="papers-column"><div class="section-heading"><div><h2>Recommended for you</h2><p>Curated from your recent practice</p></div><a href="?view=all">View all <span>-&gt;</span></a></div>@foreach (var paper in FilteredPapers) { <article class="paper-card"><div class="paper-color @paper.ColorClass"><span>@paper.Code</span></div><div class="paper-main"><div class="paper-meta"><span>@paper.Exam</span><span class="dot">.</span><span>@paper.Year</span><span class="level @paper.LevelClass">@paper.Level</span></div><h3>@paper.Title</h3><p>@paper.Description</p><div class="paper-footer"><span>@paper.Questions questions</span><span class="dot">.</span><span>@paper.Duration min</span><span class="topic-tag">@paper.Topic</span></div></div><div class="paper-actions"><button class="@SaveClass(paper)" title="Save paper" @onclick="() => ToggleSave(paper)">@SaveLabel(paper)</button><button class="open-button" @onclick="() => OpenViewer(paper)">Open paper <span>-&gt;</span></button></div></article> } @if (!FilteredPapers.Any()) { <div class="empty-state">No papers found. Try a broader search.</div> }</div><aside class="activity-panel"><div class="section-heading"><div><h2>Recent activity</h2><p>Your practice trail</p></div><a href="?view=activity">See all</a></div><div class="activity-list">@foreach (var item in Activities) { <div class="activity-item"><span class="activity-dot @item.DotClass"></span><div><strong>@item.Title</strong><span>@item.Detail</span></div><time>@item.When</time></div> }</div><div class="insight-box"><span class="insight-symbol">i</span><div><strong>Small insight</strong><p>You are 18% faster on mechanics than last week.</p></div></div></aside></section>
@@ -35,7 +44,7 @@ else
 
 @if (showAccountModal)
 {
-    <div class="modal-backdrop" @onclick="CloseAccount"><section class="utility-modal compact-modal" @onclick:stopPropagation><header><div><span class="modal-kicker">Your profile</span><h2>Aarav Kumar</h2><p>Student account</p></div><button class="close-button" @onclick="CloseAccount">x</button></header><div class="profile-summary"><div class="large-avatar">AK</div><div><strong>Learning since September 2026</strong><span>12 papers completed</span><span>7 day practice streak</span></div></div><div class="account-stats"><div><strong>82%</strong><span>Average score</span></div><div><strong>24h</strong><span>Practice time</span></div><div><strong>18</strong><span>Saved papers</span></div></div></section></div>
+    <div class="modal-backdrop" @onclick="CloseAccount"><section class="utility-modal compact-modal" @onclick:stopPropagation><header><div><span class="modal-kicker">Your profile</span><h2>@(currentUser?.Name ?? "Account")</h2><p>@(currentUser?.Email ?? "Sign in to view your account")</p></div><button class="close-button" @onclick="CloseAccount">x</button></header><div class="profile-summary"><div class="large-avatar">@UserInitials</div><div><strong>@(currentUser is null ? "Not signed in" : "Connected to Appwrite")</strong><span>@Papers.Count papers available</span><span>@Activities.Count recent activities</span></div></div><div class="account-stats"><div><strong>@Papers.Count</strong><span>Available papers</span></div><div><strong>@Activities.Count</strong><span>Activities</span></div><div><strong>@savedPapers.Count</strong><span>Saved papers</span></div></div>@if (currentUser is not null) { <button class="secondary-button" @onclick="SignOut">Sign out</button> }</section></div>
 }
 
 @if (showSettingsModal)
@@ -49,6 +58,8 @@ else
     private bool showAccountModal;
     private bool showSettingsModal;
     private bool showNotifications;
+    private string dataError = string.Empty;
+    private FrontEnd.Services.AppwriteUser? currentUser;
     private string searchTerm = string.Empty;
     private string activeTab = "All papers";
     private string uploadExam = string.Empty;
@@ -61,12 +72,13 @@ else
     private string uploadLevel = "Moderate";
     private readonly List<string> Interests = ["Physics", "Biology", "Polity", "Mathematics"];
     private readonly HashSet<string> selectedInterests = ["Physics"];
-    private readonly List<NotificationItem> Notifications = [new("New Physics paper match", "JEE Main mechanics is ready for your practice queue.", "12 min ago", true), new("Weekly practice nudge", "You are 3 papers away from your weekly goal.", "Yesterday", false)];
-    private int unreadCount = 1;
+    private readonly List<NotificationItem> Notifications = [];
+    private int unreadCount;
     private Paper? selectedPaper;
-    private readonly HashSet<string> savedPapers = ["Physics | January Session"];
-    private List<Paper> Papers { get; } = [new("JEE Main", "2025", "Physics | January Session", "A sharp set of mechanics questions with detailed answer keys.", "Physics", "30", "60", "J", "blue", "Advanced", "advanced"), new("UPSC CSE", "2024", "General Studies I", "Build a strong base in polity, history, and current affairs.", "Polity", "100", "120", "U", "orange", "Moderate", "moderate"), new("NEET UG", "2024", "Biology | Zoology", "High-yield concepts mapped to the latest NTA pattern.", "Biology", "50", "45", "N", "green", "Starter", "starter")];
-    private List<Activity> Activities { get; } = [new("Completed JEE Main 2025 Physics", "Score 82%  |  24 min", "2h ago", "blue"), new("Saved UPSC CSE General Studies I", "Added to your list", "Yesterday", "orange"), new("Started NEET UG Biology", "Question 18 of 50", "Sep 24", "green")];
+    private readonly HashSet<string> savedPapers = [];
+    private List<Paper> Papers { get; } = [];
+    private List<Activity> Activities { get; } = [];
+    private string UserInitials => string.IsNullOrWhiteSpace(currentUser?.Name) ? "?" : string.Concat(currentUser.Name.Split(' ', StringSplitOptions.RemoveEmptyEntries).Take(2).Select(part => part[0])).ToUpperInvariant();
     private IEnumerable<Paper> FilteredPapers => Papers.Where(p => string.IsNullOrWhiteSpace(searchTerm) || $"{p.Exam} {p.Year} {p.Title} {p.Topic}".Contains(searchTerm, StringComparison.OrdinalIgnoreCase));
     private void SetSearch(string value) => searchTerm = value;
     private void SearchJee() => SetSearch("JEE Main physics");
@@ -109,22 +121,112 @@ else
         await JS.InvokeVoidAsync("prepTubeNotifications.show", $"{interest} updates enabled", $"New {interest} PYQs will appear in PrepTube.");
     }
     private async Task EnableBrowserNotifications() => await JS.InvokeVoidAsync("prepTubeNotifications.enable");
-    private void UploadPaper()
+    private async Task UploadPaper()
     {
         var levelClass = uploadLevel.ToLowerInvariant();
         var code = string.IsNullOrWhiteSpace(uploadExam) ? "P" : uploadExam[..1].ToUpperInvariant();
-        Papers.Insert(0, new Paper(uploadExam, uploadYear, uploadTitle, uploadDescription, uploadSubject, uploadQuestions, uploadDuration, code, "blue", uploadLevel, levelClass));
-        Activities.Insert(0, new Activity($"Uploaded {uploadTitle}", $"{uploadExam}  |  {uploadSubject}  |  {uploadYear}", "Just now", "blue"));
-        searchTerm = uploadSubject;
-        CloseUpload();
-        uploadExam = uploadSubject = uploadYear = uploadTitle = uploadDescription = uploadQuestions = uploadDuration = string.Empty;
+        var paper = new Paper(uploadExam, uploadYear, uploadTitle, uploadDescription, uploadSubject, uploadQuestions, uploadDuration, code, "blue", uploadLevel, levelClass);
+
+        try
+        {
+            var created = await Appwrite.CreateDocumentAsync(Appwrite.PapersCollectionId, new
+            {
+                exam = paper.Exam,
+                year = paper.Year,
+                title = paper.Title,
+                description = paper.Description,
+                topic = paper.Topic,
+                questions = paper.Questions,
+                duration = paper.Duration,
+                code = paper.Code,
+                colorClass = paper.ColorClass,
+                level = paper.Level,
+                levelClass = paper.LevelClass
+            });
+
+            if (!created)
+            {
+                dataError = "The paper could not be saved to Appwrite.";
+                return;
+            }
+
+            Papers.Insert(0, paper);
+            searchTerm = uploadSubject;
+            CloseUpload();
+            uploadExam = uploadSubject = uploadYear = uploadTitle = uploadDescription = uploadQuestions = uploadDuration = string.Empty;
+        }
+        catch (HttpRequestException)
+        {
+            dataError = "Appwrite rejected the upload. Check collection permissions and attributes.";
+        }
     }
+
+    private async Task SignOut()
+    {
+        await Appwrite.SignOutAsync();
+        currentUser = null;
+        CloseAccount();
+    }
+
+    private async Task LoadWorkspaceAsync()
+    {
+        if (!Appwrite.IsConfigured)
+        {
+            isLoading = false;
+            return;
+        }
+
+        try
+        {
+            currentUser = await Appwrite.GetCurrentUserAsync();
+            var paperDocuments = await Appwrite.ListDocumentsAsync(Appwrite.PapersCollectionId);
+            var activityDocuments = await Appwrite.ListDocumentsAsync(Appwrite.ActivitiesCollectionId);
+            Papers.AddRange(paperDocuments.Select(MapPaper));
+            Activities.AddRange(activityDocuments.Select(MapActivity));
+        }
+        catch (HttpRequestException)
+        {
+            dataError = "Unable to load Appwrite data. Check the project ID, database ID, and collection permissions.";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private static Paper MapPaper(FrontEnd.Services.AppwriteDocument document)
+    {
+        var data = document.Data;
+        var exam = ReadString(data, "exam");
+        var title = ReadString(data, "title");
+        var level = ReadString(data, "level", "Moderate");
+        return new Paper(exam, ReadString(data, "year"), title, ReadString(data, "description"), ReadString(data, "topic"), ReadString(data, "questions"), ReadString(data, "duration"), ReadString(data, "code", exam.Length > 0 ? exam[..1].ToUpperInvariant() : "P"), ReadString(data, "colorClass", "blue"), level, ReadString(data, "levelClass", level.ToLowerInvariant()));
+    }
+
+    private static Activity MapActivity(FrontEnd.Services.AppwriteDocument document)
+    {
+        var data = document.Data;
+        return new Activity(ReadString(data, "title"), ReadString(data, "detail"), ReadString(data, "when", "Recently"), ReadString(data, "dotClass", "blue"));
+    }
+
+    private static string ReadString(IReadOnlyDictionary<string, object?> data, string key, string fallback = "")
+    {
+        if (!data.TryGetValue(key, out var value) || value is null)
+        {
+            return fallback;
+        }
+
+        return value is System.Text.Json.JsonElement element
+            ? element.ToString()
+            : Convert.ToString(value) ?? fallback;
+    }
+
+    protected override async Task OnInitializedAsync() => await LoadWorkspaceAsync();
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
-            await Task.Delay(700);
-            isLoading = false;
             StateHasChanged();
         }
     }

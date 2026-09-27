@@ -1,20 +1,20 @@
-﻿<div class="top-row ps-3 navbar navbar-dark">
-    <div class="container-fluid">
-        <a class="navbar-brand" href="">FrontEnd</a>
-        <button title="Navigation menu" class="navbar-toggler" @onclick="ToggleNavMenu">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-    </div>
+﻿<div class="brand-block">
+    <a class="brand" href=""><span class="brand-mark">P</span><span>PrepTube</span></a>
+    <span class="brand-caption">PYQ playground</span>
 </div>
 
+<button title="Navigation menu" class="navbar-toggler" @onclick="ToggleNavMenu"><span class="menu-icon">=</span></button>
+
 <div class="@NavMenuCssClass nav-scrollable" @onclick="ToggleNavMenu">
-    <nav class="flex-column">
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                <span class="oi oi-home" aria-hidden="true"></span> Home
-            </NavLink>
-        </div>
+    <nav class="nav-list">
+        <span class="nav-label">Workspace</span>
+        <NavLink class="nav-link" href="" Match="NavLinkMatch.All"><span class="nav-icon">/</span> Discover</NavLink>
+        <NavLink class="nav-link" href="?view=saved"><span class="nav-icon">*</span> Saved list <span class="nav-count">3</span></NavLink>
+        <NavLink class="nav-link" href="?view=activity"><span class="nav-icon">+</span> Activity</NavLink>
+        <span class="nav-label nav-label-spaced">Your focus</span>
+        <div class="focus-card"><div class="focus-card-top"><span>Weekly goal</span><strong>64%</strong></div><div class="progress-track"><span style="width: 64%"></span></div><small>12 of 20 papers completed</small></div>
     </nav>
+    <div class="sidebar-footer"><div class="profile-avatar">AK</div><div><strong>Aarav Kumar</strong><span>Student account</span></div><button class="more-button" title="More options">...</button></div>
 </div>
 
 @code {

@@ -1,47 +1,134 @@
-﻿@page "/"
-@using FrontEnd.Data
-@inject WeatherForecastClient ForecastClient
+@page "/"
+@inject IJSRuntime JS
 
-<PageTitle>Weather forecast</PageTitle>
-
-<h1>Weather forecast</h1>
-
-<p>This component demonstrates fetching data from a service.</p>
-
-@if (forecasts == null)
+@if (isLoading)
 {
-    <p><em>Loading...</em></p>
+    <div class="workspace loading-workspace" aria-busy="true" aria-label="Loading workspace">
+        <header class="topbar"><div class="skeleton-bar skeleton-crumb"></div><div class="skeleton-circle"></div></header>
+        <section class="hero-row skeleton-hero"><div><div class="skeleton-bar skeleton-eyebrow"></div><div class="skeleton-bar skeleton-title"></div><div class="skeleton-bar skeleton-copy"></div></div><div class="skeleton-streak"><div class="skeleton-circle"></div><div><div class="skeleton-bar skeleton-small"></div><div class="skeleton-bar skeleton-tiny"></div></div></div></section>
+        <section class="skeleton-search"><div class="skeleton-bar skeleton-search-line"></div><div class="skeleton-pills"><span></span><span></span><span></span></div></section>
+        <div class="skeleton-tabs"><span></span><span></span><span></span></div>
+        <section class="content-grid"><div class="papers-column"><div class="skeleton-heading"><div class="skeleton-bar"></div><div class="skeleton-bar"></div></div>@for (var index = 0; index < 3; index++) { <article class="skeleton-paper"><div class="skeleton-thumb"></div><div class="skeleton-paper-copy"><div class="skeleton-bar skeleton-meta"></div><div class="skeleton-bar skeleton-paper-title"></div><div class="skeleton-bar skeleton-paper-line"></div><div class="skeleton-bar skeleton-paper-line short"></div></div><div class="skeleton-button"></div></article> }</div><aside class="activity-panel"><div class="skeleton-heading"><div class="skeleton-bar"></div><div class="skeleton-bar"></div></div>@for (var index = 0; index < 3; index++) { <div class="skeleton-activity"><span></span><div><div class="skeleton-bar"></div><div class="skeleton-bar short"></div></div></div> }</aside></section>
+    </div>
 }
 else
 {
-    <table class="table">
-        <thead>
-            <tr>
-                <th>Date</th>
-                <th>Temp. (C)</th>
-                <th>Temp. (F)</th>
-                <th>Summary</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var forecast in forecasts)
-            {
-                <tr>
-                    <td>@forecast.Date.ToShortDateString()</td>
-                    <td>@forecast.TemperatureC</td>
-                    <td>@forecast.TemperatureF</td>
-                    <td>@forecast.Summary</td>
-                </tr>
-            }
-        </tbody>
-    </table>
+<div class="workspace">
+    <header class="topbar"><div class="breadcrumbs"><span>Workspace</span><span>/</span><strong>Discover</strong></div><div class="top-actions"><button class="toolbar-action" @onclick="OpenUpload">Upload PYQ <span>+</span></button><button class="notification-button" title="Notifications" @onclick="ToggleNotifications">!@if (unreadCount > 0) { <span class="notification-badge">@unreadCount</span> }</button><button class="top-avatar" title="Account" @onclick="OpenAccount">AK</button><button class="settings-button" title="Settings" @onclick="OpenSettings">Settings</button></div></header>
+    @if (showNotifications)
+    {
+        <section class="notification-panel"><div class="notification-panel-head"><div><span class="modal-kicker">Stay in the loop</span><h2>Notifications</h2></div><button class="close-button" @onclick="MarkNotificationsRead">Mark read</button></div><p class="notification-copy">Choose what you want to hear about. We will show related PYQ drops and practice nudges.</p><div class="interest-chips">@foreach (var interest in Interests) { <button class="interest-chip @(selectedInterests.Contains(interest) ? "active" : "")" @onclick="() => ToggleInterest(interest)">@interest <span>@(selectedInterests.Contains(interest) ? "on" : "+")</span></button> }</div><div class="notification-list">@foreach (var notification in Notifications.Take(4)) { <div class="notification-item @(notification.IsNew ? "new" : "")"><span class="notification-dot"></span><div><strong>@notification.Title</strong><p>@notification.Body</p><time>@notification.When</time></div></div> }</div><button class="browser-notification-button" @onclick="EnableBrowserNotifications">Enable phone/browser alerts</button></section>
+    }
+    <section class="hero-row"><div><p class="eyebrow">SATURDAY, 26 SEPTEMBER 2026</p><h1>Build your <span>edge.</span></h1><p class="hero-copy">Pick a paper, find your pattern, and turn every wrong answer into your next advantage.</p></div><div class="streak-card"><div class="streak-icon">7</div><div><strong>7 day streak</strong><span>Keep the momentum going</span></div></div></section>
+    <section class="search-panel"><div class="search-input-wrap"><span class="search-icon">/</span><input @bind="searchTerm" @bind:event="oninput" placeholder="Search by exam, subject, year, topic..." /><kbd>CTRL K</kbd></div><div class="suggestions"><span>Try searching</span><button @onclick="SearchJee">JEE Main physics</button><button @onclick="SearchUpsc">UPSC polity</button><button @onclick="SearchNeet">NEET 2024</button></div></section>
+    <div class="filter-row" aria-label="Active filter: @activeTab"><div class="filter-tabs"><button class="selected" @onclick="SelectAll">All papers</button><button @onclick="SelectPracticed">Most practiced</button><button @onclick="SelectNew">New uploads</button></div><button class="filter-button">Filter <span>+</span></button></div>
+    <section class="content-grid"><div class="papers-column"><div class="section-heading"><div><h2>Recommended for you</h2><p>Curated from your recent practice</p></div><a href="?view=all">View all <span>-&gt;</span></a></div>@foreach (var paper in FilteredPapers) { <article class="paper-card"><div class="paper-color @paper.ColorClass"><span>@paper.Code</span></div><div class="paper-main"><div class="paper-meta"><span>@paper.Exam</span><span class="dot">.</span><span>@paper.Year</span><span class="level @paper.LevelClass">@paper.Level</span></div><h3>@paper.Title</h3><p>@paper.Description</p><div class="paper-footer"><span>@paper.Questions questions</span><span class="dot">.</span><span>@paper.Duration min</span><span class="topic-tag">@paper.Topic</span></div></div><div class="paper-actions"><button class="@SaveClass(paper)" title="Save paper" @onclick="() => ToggleSave(paper)">@SaveLabel(paper)</button><button class="open-button" @onclick="() => OpenViewer(paper)">Open paper <span>-&gt;</span></button></div></article> } @if (!FilteredPapers.Any()) { <div class="empty-state">No papers found. Try a broader search.</div> }</div><aside class="activity-panel"><div class="section-heading"><div><h2>Recent activity</h2><p>Your practice trail</p></div><a href="?view=activity">See all</a></div><div class="activity-list">@foreach (var item in Activities) { <div class="activity-item"><span class="activity-dot @item.DotClass"></span><div><strong>@item.Title</strong><span>@item.Detail</span></div><time>@item.When</time></div> }</div><div class="insight-box"><span class="insight-symbol">i</span><div><strong>Small insight</strong><p>You are 18% faster on mechanics than last week.</p></div></div></aside></section>
+</div>
+}
+
+@if (selectedPaper is not null) { <div class="modal-backdrop" @onclick="CloseViewer"><section class="pdf-modal" @onclick:stopPropagation><header><div><span class="modal-kicker">PDF viewer</span><h2>@selectedPaper.Title</h2></div><button class="close-button" @onclick="CloseViewer">x</button></header><div class="pdf-toolbar"><span>Page 1 of 8</span><div><button title="Zoom out">-</button><span>100%</span><button title="Zoom in">+</button><a class="download-link" download="prep-tube-paper.pdf" href="data:application/pdf,%25PDF-1.4%0A%25%25EOF">Download PDF</a></div></div><div class="pdf-page"><div class="pdf-page-header"><span>PREPTUBE ARCHIVE</span><span>@selectedPaper.Exam / @selectedPaper.Year</span></div><h3>@selectedPaper.Title</h3><p class="pdf-subtitle">Section A | @selectedPaper.Topic</p><div class="pdf-rule"></div><div class="fake-question"><strong>01</strong><div><p>Which of the following statements is correct for the problem shown below?</p><div class="fake-lines"><span></span><span></span><span></span></div><div class="fake-options"><span>(A) Option one</span><span>(B) Option two</span><span>(C) Option three</span><span>(D) Option four</span></div></div></div><div class="pdf-footer"><span>prepTube.app</span><span>1</span></div></div></section></div> }
+
+@if (showUploadModal)
+{
+    <div class="modal-backdrop" @onclick="CloseUpload"><section class="utility-modal upload-modal" @onclick:stopPropagation><header><div><span class="modal-kicker">Community library</span><h2>Upload a PYQ</h2><p>Add accurate metadata so other students can find it quickly.</p></div><button class="close-button" @onclick="CloseUpload">x</button></header><form class="upload-form" @onsubmit="UploadPaper" @onsubmit:preventDefault><div class="form-grid"><label>Exam<input @bind="uploadExam" placeholder="JEE Main" required /></label><label>Subject<input @bind="uploadSubject" placeholder="Physics" required /></label><label>Year<input @bind="uploadYear" type="number" min="1990" max="2026" placeholder="2025" required /></label><label>Difficulty<select @bind="uploadLevel"><option>Advanced</option><option>Moderate</option><option>Starter</option></select></label></div><label>Paper title<input @bind="uploadTitle" placeholder="Physics | January Session" required /></label><label>Description<textarea @bind="uploadDescription" placeholder="Short description for search and preview" rows="3"></textarea></label><div class="form-grid"><label>Questions<input @bind="uploadQuestions" type="number" min="1" placeholder="30" required /></label><label>Duration (minutes)<input @bind="uploadDuration" type="number" min="1" placeholder="60" required /></label></div><div class="upload-dropzone"><strong>PDF file ready for connection</strong><span>When backend is connected, the file picker and storage upload will attach here.</span></div><div class="modal-actions"><button type="button" class="secondary-button" @onclick="CloseUpload">Cancel</button><button type="submit" class="primary-button">Add to PYQ library</button></div></form></section></div>
+}
+
+@if (showAccountModal)
+{
+    <div class="modal-backdrop" @onclick="CloseAccount"><section class="utility-modal compact-modal" @onclick:stopPropagation><header><div><span class="modal-kicker">Your profile</span><h2>Aarav Kumar</h2><p>Student account</p></div><button class="close-button" @onclick="CloseAccount">x</button></header><div class="profile-summary"><div class="large-avatar">AK</div><div><strong>Learning since September 2026</strong><span>12 papers completed</span><span>7 day practice streak</span></div></div><div class="account-stats"><div><strong>82%</strong><span>Average score</span></div><div><strong>24h</strong><span>Practice time</span></div><div><strong>18</strong><span>Saved papers</span></div></div></section></div>
+}
+
+@if (showSettingsModal)
+{
+    <div class="modal-backdrop" @onclick="CloseSettings"><section class="utility-modal compact-modal" @onclick:stopPropagation><header><div><span class="modal-kicker">Preferences</span><h2>Settings</h2><p>Personalize your study workspace.</p></div><button class="close-button" @onclick="CloseSettings">x</button></header><div class="settings-list"><label><span><strong>Daily reminders</strong><small>Get a gentle nudge for your practice goal.</small></span><input type="checkbox" checked /></label><label><span><strong>Show answer insights</strong><small>Display learning patterns in activity.</small></span><input type="checkbox" checked /></label><label><span><strong>Compact paper cards</strong><small>Fit more PYQs on the screen.</small></span><input type="checkbox" /></label></div></section></div>
 }
 
 @code {
-    private WeatherForecast[]? forecasts;
-
-    protected override async Task OnInitializedAsync()
+    private bool isLoading = true;
+    private bool showUploadModal;
+    private bool showAccountModal;
+    private bool showSettingsModal;
+    private bool showNotifications;
+    private string searchTerm = string.Empty;
+    private string activeTab = "All papers";
+    private string uploadExam = string.Empty;
+    private string uploadSubject = string.Empty;
+    private string uploadYear = string.Empty;
+    private string uploadTitle = string.Empty;
+    private string uploadDescription = string.Empty;
+    private string uploadQuestions = string.Empty;
+    private string uploadDuration = string.Empty;
+    private string uploadLevel = "Moderate";
+    private readonly List<string> Interests = ["Physics", "Biology", "Polity", "Mathematics"];
+    private readonly HashSet<string> selectedInterests = ["Physics"];
+    private readonly List<NotificationItem> Notifications = [new("New Physics paper match", "JEE Main mechanics is ready for your practice queue.", "12 min ago", true), new("Weekly practice nudge", "You are 3 papers away from your weekly goal.", "Yesterday", false)];
+    private int unreadCount = 1;
+    private Paper? selectedPaper;
+    private readonly HashSet<string> savedPapers = ["Physics | January Session"];
+    private List<Paper> Papers { get; } = [new("JEE Main", "2025", "Physics | January Session", "A sharp set of mechanics questions with detailed answer keys.", "Physics", "30", "60", "J", "blue", "Advanced", "advanced"), new("UPSC CSE", "2024", "General Studies I", "Build a strong base in polity, history, and current affairs.", "Polity", "100", "120", "U", "orange", "Moderate", "moderate"), new("NEET UG", "2024", "Biology | Zoology", "High-yield concepts mapped to the latest NTA pattern.", "Biology", "50", "45", "N", "green", "Starter", "starter")];
+    private List<Activity> Activities { get; } = [new("Completed JEE Main 2025 Physics", "Score 82%  |  24 min", "2h ago", "blue"), new("Saved UPSC CSE General Studies I", "Added to your list", "Yesterday", "orange"), new("Started NEET UG Biology", "Question 18 of 50", "Sep 24", "green")];
+    private IEnumerable<Paper> FilteredPapers => Papers.Where(p => string.IsNullOrWhiteSpace(searchTerm) || $"{p.Exam} {p.Year} {p.Title} {p.Topic}".Contains(searchTerm, StringComparison.OrdinalIgnoreCase));
+    private void SetSearch(string value) => searchTerm = value;
+    private void SearchJee() => SetSearch("JEE Main physics");
+    private void SearchUpsc() => SetSearch("UPSC polity");
+    private void SearchNeet() => SetSearch("NEET 2024");
+    private void SelectAll() => activeTab = "All papers";
+    private void SelectPracticed() => activeTab = "Most practiced";
+    private void SelectNew() => activeTab = "New uploads";
+    private bool IsSaved(Paper paper) => savedPapers.Contains(paper.Title);
+    private string SaveClass(Paper paper) => IsSaved(paper) ? "save-button is-saved" : "save-button";
+    private string SaveLabel(Paper paper) => IsSaved(paper) ? "Saved" : "Save";
+    private void ToggleSave(Paper paper) { if (!savedPapers.Add(paper.Title)) savedPapers.Remove(paper.Title); }
+    private void OpenViewer(Paper paper) => selectedPaper = paper;
+    private void CloseViewer() => selectedPaper = null;
+    private void OpenUpload() => showUploadModal = true;
+    private void CloseUpload() => showUploadModal = false;
+    private void OpenAccount() => showAccountModal = true;
+    private void CloseAccount() => showAccountModal = false;
+    private void OpenSettings() => showSettingsModal = true;
+    private void CloseSettings() => showSettingsModal = false;
+    private void ToggleNotifications() => showNotifications = !showNotifications;
+    private void MarkNotificationsRead()
     {
-        forecasts = await ForecastClient.GetForecastAsync(DateTime.Now);
+        unreadCount = 0;
+        for (var index = 0; index < Notifications.Count; index++)
+        {
+            Notifications[index] = Notifications[index] with { IsNew = false };
+        }
     }
+    private async Task ToggleInterest(string interest)
+    {
+        if (!selectedInterests.Add(interest))
+        {
+            selectedInterests.Remove(interest);
+            return;
+        }
+
+        Notifications.Insert(0, new NotificationItem($"{interest} alert enabled", $"You will now see new {interest} PYQs and practice updates.", "Just now", true));
+        unreadCount++;
+        await JS.InvokeVoidAsync("prepTubeNotifications.show", $"{interest} updates enabled", $"New {interest} PYQs will appear in PrepTube.");
+    }
+    private async Task EnableBrowserNotifications() => await JS.InvokeVoidAsync("prepTubeNotifications.enable");
+    private void UploadPaper()
+    {
+        var levelClass = uploadLevel.ToLowerInvariant();
+        var code = string.IsNullOrWhiteSpace(uploadExam) ? "P" : uploadExam[..1].ToUpperInvariant();
+        Papers.Insert(0, new Paper(uploadExam, uploadYear, uploadTitle, uploadDescription, uploadSubject, uploadQuestions, uploadDuration, code, "blue", uploadLevel, levelClass));
+        Activities.Insert(0, new Activity($"Uploaded {uploadTitle}", $"{uploadExam}  |  {uploadSubject}  |  {uploadYear}", "Just now", "blue"));
+        searchTerm = uploadSubject;
+        CloseUpload();
+        uploadExam = uploadSubject = uploadYear = uploadTitle = uploadDescription = uploadQuestions = uploadDuration = string.Empty;
+    }
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await Task.Delay(700);
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+    private record Paper(string Exam, string Year, string Title, string Description, string Topic, string Questions, string Duration, string Code, string ColorClass, string Level, string LevelClass);
+    private record Activity(string Title, string Detail, string When, string DotClass);
+    private record NotificationItem(string Title, string Body, string When, bool IsNew);
 }

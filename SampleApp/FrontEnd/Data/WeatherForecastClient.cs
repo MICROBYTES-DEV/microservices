@@ -1,3 +1,5 @@
+using System.Net.Http.Json;
+
 namespace FrontEnd.Data;
 
 public class WeatherForecastClient

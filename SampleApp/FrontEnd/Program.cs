@@ -1,29 +1,17 @@
-using FrontEnd.Data;
+using Microsoft.AspNetCore.Components.Web;
+using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
+using FrontEnd.Services;
+using FrontEnd;
 
-var builder = WebApplication.CreateBuilder(args);
+var builder = WebAssemblyHostBuilder.CreateDefault(args);
+builder.RootComponents.Add<App>("#app");
+builder.RootComponents.Add<HeadOutlet>("head::after");
 
-builder.Services.AddRazorPages();
-builder.Services.AddServerSideBlazor();
-
-builder.Services.AddHttpClient<WeatherForecastClient>(c =>
+builder.Services.AddScoped(_ => new HttpClient
 {
-    var url = builder.Configuration["WEATHER_URL"] 
-        ?? throw new InvalidOperationException("WEATHER_URL is not set");
-
-    c.BaseAddress = new(url);
+    BaseAddress = new Uri(builder.HostEnvironment.BaseAddress)
 });
 
-var app = builder.Build();
+builder.Services.AddScoped<AppwriteClient>();
 
-if (!app.Environment.IsDevelopment())
-{
-    app.UseExceptionHandler("/Error");
-    app.UseHsts();
-}
-
-app.UseHttpsRedirection();
-app.UseStaticFiles();
-app.UseRouting();
-app.MapBlazorHub();
-app.MapFallbackToPage("/_Host");
-app.Run();
+await builder.Build().RunAsync();

@@ -1,0 +1,76 @@
+@page "/login"
+@inject FrontEnd.Services.AppwriteClient Appwrite
+
+<PageTitle>Sign in - PrepTube</PageTitle>
+
+<div class="login-page">
+    <div class="login-atmosphere"></div>
+    <a class="login-brand" href="/"><span class="brand-mark">P</span><span>PrepTube</span></a>
+    <main class="login-shell">
+        <section class="login-intro">
+            <span class="login-kicker">PYQ playground</span>
+            <h1>Your next<br /><em>breakthrough</em><br />starts here.</h1>
+            <p>Save your papers, track your practice, and stay close to the subjects that matter most.</p>
+            <div class="login-proof"><span class="proof-avatars"><i>AK</i><i>RM</i><i>NS</i></span><span><strong>12k+ learners</strong><small>building their edge daily</small></span></div>
+        </section>
+        <section class="login-card" aria-labelledby="login-title">
+            <div class="login-card-head"><span class="login-card-label">Welcome back</span><h2 id="login-title">Sign in to PrepTube</h2><p>Continue your learning streak.</p></div>
+            @if (showMessage)
+            {
+                <div class="login-message">@message</div>
+            }
+            <form @onsubmit="HandleLogin" @onsubmit:preventDefault>
+                <label>Email address<input @bind="email" type="email" placeholder="you@example.com" autocomplete="email" required /></label>
+                <label>Password<div class="password-field"><input @bind="password" type="password" placeholder="Enter your password" autocomplete="current-password" required /><button type="button" title="Show password">Show</button></div></label>
+                <div class="login-options"><label class="remember-option"><input type="checkbox" @bind="rememberMe" /> Remember me</label><a href="/login">Forgot password?</a></div>
+                <button class="login-submit" type="submit" disabled="@isSubmitting">@(isSubmitting ? "Signing in..." : "Sign in") <span>-&gt;</span></button>
+            </form>
+            <div class="login-divider"><span>or continue with</span></div>
+            <div class="social-buttons"><button type="button" @onclick="SocialLogin">Google</button><button type="button" @onclick="SocialLogin">Phone</button></div>
+            <p class="signup-prompt">New to PrepTube? <a href="/login">Create an account</a></p>
+        </section>
+    </main>
+    <footer class="login-footer"><span>Private by design</span><span>Secure learning workspace</span><span>Need help?</span></footer>
+</div>
+
+@code {
+    private string email = string.Empty;
+    private string password = string.Empty;
+    private bool rememberMe;
+    private bool showMessage;
+    private bool isSubmitting;
+    private string message = string.Empty;
+
+    private async Task HandleLogin()
+    {
+        isSubmitting = true;
+        showMessage = false;
+
+        try
+        {
+            if (await Appwrite.SignInAsync(email, password))
+            {
+                message = "Signed in successfully.";
+            }
+            else
+            {
+                message = "Unable to sign in. Check your email and password.";
+            }
+        }
+        catch (HttpRequestException)
+        {
+            message = "Appwrite is unavailable. Check your project configuration.";
+        }
+        finally
+        {
+            isSubmitting = false;
+            showMessage = true;
+        }
+    }
+
+    private void SocialLogin()
+    {
+        message = "Social login needs an Appwrite OAuth provider configuration.";
+        showMessage = true;
+    }
+}

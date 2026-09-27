@@ -96,7 +96,9 @@ public sealed class AppwriteClient
 
     public async Task<AppwriteFile?> UploadPdfAsync(IBrowserFile file, CancellationToken cancellationToken = default)
     {
-        await using var stream = file.OpenReadStream(50 * 1024 * 1024, cancellationToken);
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        timeout.CancelAfter(TimeSpan.FromSeconds(45));
+        await using var stream = file.OpenReadStream(50 * 1024 * 1024, timeout.Token);
         using var content = new MultipartFormDataContent();
         content.Add(new StringContent("unique()"), "fileId");
         using var fileContent = new StreamContent(stream);
@@ -105,7 +107,7 @@ public sealed class AppwriteClient
 
         using var request = CreateRequest(HttpMethod.Post, $"/storage/buckets/{storageBucketId}/files");
         request.Content = content;
-        using var response = await httpClient.SendAsync(request, cancellationToken);
+        using var response = await httpClient.SendAsync(request, timeout.Token);
         response.EnsureSuccessStatusCode();
         return await response.Content.ReadFromJsonAsync<AppwriteFile>(cancellationToken);
     }

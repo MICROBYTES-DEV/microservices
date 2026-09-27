@@ -39,7 +39,7 @@ else
 
 @if (showUploadModal)
 {
-    <div class="modal-backdrop" @onclick="CloseUpload"><section class="utility-modal upload-modal" @onclick:stopPropagation><header><div><span class="modal-kicker">Community library</span><h2>Upload a PYQ</h2><p>Add accurate metadata so other students can find it quickly.</p></div><button class="close-button" @onclick="CloseUpload">x</button></header><form class="upload-form" @onsubmit="UploadPaper" @onsubmit:preventDefault><div class="form-grid"><label>Exam<input @bind="uploadExam" placeholder="JEE Main" required /></label><label>Subject<input @bind="uploadSubject" placeholder="Physics" required /></label><label>Year<input @bind="uploadYear" type="number" min="1990" max="2026" placeholder="2025" required /></label><label>Difficulty<select @bind="uploadLevel"><option>Advanced</option><option>Moderate</option><option>Starter</option></select></label></div><label>Paper title<input @bind="uploadTitle" placeholder="Physics | January Session" required /></label><label>Description<textarea @bind="uploadDescription" placeholder="Short description for search and preview" rows="3"></textarea></label><div class="form-grid"><label>Questions<input @bind="uploadQuestions" type="number" min="1" placeholder="30" required /></label><label>Duration (minutes)<input @bind="uploadDuration" type="number" min="1" placeholder="60" required /></label></div><div class="upload-dropzone"><strong>Choose the PYQ PDF</strong><InputFile OnChange="SelectPdf" accept="application/pdf" /><span>@(selectedPdf?.Name ?? "PDF only, up to 50 MB")</span></div>@if (!string.IsNullOrWhiteSpace(uploadError)) { <p class="upload-error">@uploadError</p> }<div class="modal-actions"><button type="button" class="secondary-button" @onclick="CloseUpload">Cancel</button><button type="submit" class="primary-button" disabled="@isUploading">@(isUploading ? "Uploading..." : "Add to PYQ library")</button></div></form></section></div>
+    <div class="modal-backdrop" @onclick="CloseUpload"><section class="utility-modal upload-modal" @onclick:stopPropagation><header><div><span class="modal-kicker">Community library</span><h2>Upload a PYQ</h2><p>Add accurate metadata so other students can find it quickly.</p></div><button class="close-button" @onclick="CloseUpload">x</button></header><form class="upload-form" @onsubmit="UploadPaper" @onsubmit:preventDefault><div class="form-grid"><label>Exam<input @bind="uploadExam" placeholder="JEE Main" required /></label><label>Subject<input @bind="uploadSubject" placeholder="Physics" required /></label><label>Year<input @bind="uploadYear" type="number" min="1990" max="2026" placeholder="2025" required /></label><label>Difficulty<select @bind="uploadLevel"><option>Advanced</option><option>Moderate</option><option>Starter</option></select></label></div><label>Paper title<input @bind="uploadTitle" placeholder="Physics | January Session" required /></label><label>Description<textarea @bind="uploadDescription" placeholder="Short description for search and preview" rows="3"></textarea></label><div class="form-grid"><label>Questions<input @bind="uploadQuestions" type="number" min="1" placeholder="30" required /></label><label>Duration (minutes)<input @bind="uploadDuration" type="number" min="1" placeholder="60" required /></label></div><div class="upload-dropzone"><strong>Choose the PYQ PDF</strong><InputFile OnChange="SelectPdf" accept="application/pdf" /><span>@(selectedPdf?.Name ?? "Tap here to choose a PDF, up to 50 MB")</span></div>@if (!string.IsNullOrWhiteSpace(uploadError)) { <p class="upload-error">@uploadError</p> }<div class="modal-actions"><button type="button" class="secondary-button" @onclick="CloseUpload">Cancel</button><button type="submit" class="primary-button" disabled="@isUploading">@(isUploading ? "Uploading PDF..." : "Add to PYQ library")</button></div></form></section></div>
 }
 
 @if (showAccountModal)
@@ -132,6 +132,12 @@ else
     private async Task EnableBrowserNotifications() => await JS.InvokeVoidAsync("prepTubeNotifications.enable");
     private async Task UploadPaper()
     {
+        if (currentUser is null)
+        {
+            uploadError = "Please sign in before uploading a PYQ.";
+            return;
+        }
+
         if (selectedPdf is null || selectedPdf.Size > 50 * 1024 * 1024)
         {
             uploadError = "Choose a PDF smaller than 50 MB before uploading.";
@@ -185,6 +191,14 @@ else
         catch (HttpRequestException)
         {
             uploadError = "Appwrite rejected the upload. Check login, Storage permissions, and collection attributes.";
+        }
+        catch (OperationCanceledException)
+        {
+            uploadError = "Upload timed out after 45 seconds. Check your connection and try again.";
+        }
+        catch (Exception exception)
+        {
+            uploadError = $"Upload failed: {exception.Message}";
         }
         finally
         {

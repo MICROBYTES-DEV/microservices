@@ -47,6 +47,10 @@
     .utility-modal, .pdf-modal { width: 100%; max-height: 92vh; border-radius: 16px 16px 0 0; }
     .utility-modal header { padding: 22px 20px 16px; }
     .upload-form { padding: 18px 20px 24px; }
+    .upload-dropzone { display: grid; gap: 8px; padding: 18px 14px; border: 1px dashed #ff9a86; background: #fff8f6; text-align: center; }
+    .upload-dropzone input { width: 100%; min-height: 42px; font-size: 12px; }
+    .upload-dropzone input::file-selector-button { border: 0; border-radius: 6px; background: #ff5a3d; color: white; padding: 10px 12px; margin-right: 8px; font-weight: 700; }
+    .upload-error { color: #b33d2c; background: #fff0eb; border: 1px solid #ffc8bc; border-radius: 6px; padding: 10px; font-size: 11px; line-height: 1.4; }
     .modal-actions { position: sticky; bottom: 0; padding-top: 10px; background: white; }
     .primary-button, .secondary-button { min-height: 42px; }
     .pdf-modal header { padding: 18px 20px; }

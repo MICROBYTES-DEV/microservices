@@ -1,6 +1,7 @@
 @page "/"
 @inject IJSRuntime JS
 @inject FrontEnd.Services.AppwriteClient Appwrite
+@inject NavigationManager Navigation
 
 @if (isLoading)
 {
@@ -16,6 +17,11 @@ else
 {
 <div class="workspace">
     <header class="topbar"><div class="breadcrumbs"><span>Workspace</span><span>/</span><strong>Discover</strong></div><div class="top-actions"><button class="toolbar-action" @onclick="OpenUpload">Upload PYQ <span>+</span></button><button class="notification-button" title="Notifications" @onclick="ToggleNotifications">!@if (unreadCount > 0) { <span class="notification-badge">@unreadCount</span> }</button><button class="top-avatar" title="Account" @onclick="OpenAccount">@UserInitials</button><button class="settings-button" title="Settings" @onclick="OpenSettings">Settings</button></div></header>
+    @if (currentUser is null)
+    {
+        <section class="auth-strip"><div><strong>Make this workspace yours</strong><span>Sign in to upload papers and save your progress.</span></div><a href="/login">Sign in <span>-&gt;</span></a></section>
+    }
+    <button class="mobile-upload-action" @onclick="OpenUpload"><span>+</span> Upload PYQ</button>
     @if (!Appwrite.IsConfigured)
     {
         <div class="empty-state">Connect your Appwrite Project ID and Database ID to load the library.</div>
@@ -97,7 +103,17 @@ else
     private void OpenViewer(Paper paper) => selectedPaper = paper;
     private void CloseViewer() => selectedPaper = null;
     private string GetPaperUrl(Paper paper) => string.IsNullOrWhiteSpace(paper.StorageFileId) ? "#" : Appwrite.GetFileViewUrl(paper.StorageFileId);
-    private void OpenUpload() { uploadError = string.Empty; showUploadModal = true; }
+    private void OpenUpload()
+    {
+        if (currentUser is null)
+        {
+            Navigation.NavigateTo("/login");
+            return;
+        }
+
+        uploadError = string.Empty;
+        showUploadModal = true;
+    }
     private void CloseUpload() { if (!isUploading) showUploadModal = false; }
     private void SelectPdf(InputFileChangeEventArgs args)
     {

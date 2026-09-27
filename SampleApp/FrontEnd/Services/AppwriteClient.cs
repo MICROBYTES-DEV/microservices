@@ -1,6 +1,7 @@
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Components.WebAssembly.Http;
+using Microsoft.AspNetCore.Components.Forms;
 
 namespace FrontEnd.Services;
 
@@ -12,6 +13,7 @@ public sealed class AppwriteClient
     private readonly string databaseId;
     private readonly string papersCollectionId;
     private readonly string activitiesCollectionId;
+    private readonly string storageBucketId;
 
     public AppwriteClient(HttpClient httpClient, IConfiguration configuration)
     {
@@ -22,6 +24,7 @@ public sealed class AppwriteClient
         databaseId = configuration["Appwrite:DatabaseId"] ?? string.Empty;
         papersCollectionId = configuration["Appwrite:PapersCollectionId"] ?? "papers";
         activitiesCollectionId = configuration["Appwrite:ActivitiesCollectionId"] ?? "activities";
+        storageBucketId = configuration["Appwrite:StorageBucketId"] ?? "pyq-pdfs";
     }
 
     public bool IsConfigured => !string.IsNullOrWhiteSpace(projectId)
@@ -31,6 +34,7 @@ public sealed class AppwriteClient
 
     public string PapersCollectionId => papersCollectionId;
     public string ActivitiesCollectionId => activitiesCollectionId;
+    public string StorageBucketId => storageBucketId;
 
     public async Task<bool> SignInAsync(string email, string password, CancellationToken cancellationToken = default)
     {
@@ -90,6 +94,25 @@ public sealed class AppwriteClient
         return response.IsSuccessStatusCode;
     }
 
+    public async Task<AppwriteFile?> UploadPdfAsync(IBrowserFile file, CancellationToken cancellationToken = default)
+    {
+        await using var stream = file.OpenReadStream(50 * 1024 * 1024, cancellationToken);
+        using var content = new MultipartFormDataContent();
+        content.Add(new StringContent("unique()"), "fileId");
+        using var fileContent = new StreamContent(stream);
+        fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/pdf");
+        content.Add(fileContent, "file", file.Name);
+
+        using var request = CreateRequest(HttpMethod.Post, $"/storage/buckets/{storageBucketId}/files");
+        request.Content = content;
+        using var response = await httpClient.SendAsync(request, cancellationToken);
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<AppwriteFile>(cancellationToken);
+    }
+
+    public string GetFileViewUrl(string fileId)
+        => $"{endpoint}/storage/buckets/{storageBucketId}/files/{fileId}/view?project={projectId}";
+
     private HttpRequestMessage CreateRequest(HttpMethod method, string path)
     {
         var request = new HttpRequestMessage(method, $"{endpoint}{path}");
@@ -108,6 +131,10 @@ public sealed record AppwriteUser(
     [property: JsonPropertyName("$id")] string Id,
     [property: JsonPropertyName("name")] string Name,
     [property: JsonPropertyName("email")] string Email);
+
+public sealed record AppwriteFile(
+    [property: JsonPropertyName("$id")] string Id,
+    [property: JsonPropertyName("name")] string Name);
 
 internal sealed record AppwriteDocumentList(
     [property: JsonPropertyName("documents")] List<AppwriteDocument> Documents);

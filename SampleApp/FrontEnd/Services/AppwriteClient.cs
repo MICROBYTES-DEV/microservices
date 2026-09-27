@@ -2,6 +2,7 @@ using System.Net.Http.Json;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Components.WebAssembly.Http;
 using Microsoft.AspNetCore.Components.Forms;
+using Microsoft.JSInterop;
 
 namespace FrontEnd.Services;
 
@@ -14,10 +15,13 @@ public sealed class AppwriteClient
     private readonly string papersCollectionId;
     private readonly string activitiesCollectionId;
     private readonly string storageBucketId;
+    private readonly IJSRuntime jsRuntime;
+    private string? session;
 
-    public AppwriteClient(HttpClient httpClient, IConfiguration configuration)
+    public AppwriteClient(HttpClient httpClient, IConfiguration configuration, IJSRuntime jsRuntime)
     {
         this.httpClient = httpClient;
+        this.jsRuntime = jsRuntime;
         endpoint = configuration["Appwrite:Endpoint"]?.TrimEnd('/')
             ?? throw new InvalidOperationException("Appwrite:Endpoint is not configured.");
         projectId = configuration["Appwrite:ProjectId"] ?? string.Empty;
@@ -36,11 +40,25 @@ public sealed class AppwriteClient
     public string ActivitiesCollectionId => activitiesCollectionId;
     public string StorageBucketId => storageBucketId;
 
+    public async Task InitializeAsync()
+    {
+        session = await jsRuntime.InvokeAsync<string?>("localStorage.getItem", "preptube.appwrite.session");
+    }
+
     public async Task<bool> SignInAsync(string email, string password, CancellationToken cancellationToken = default)
     {
         using var request = CreateRequest(HttpMethod.Post, "/account/sessions/email");
         request.Content = JsonContent.Create(new { email, password });
         using var response = await httpClient.SendAsync(request, cancellationToken);
+        if (response.IsSuccessStatusCode)
+        {
+            var sessionResponse = await response.Content.ReadFromJsonAsync<AppwriteSession>(cancellationToken);
+            session = sessionResponse?.Secret ?? (response.Headers.TryGetValues("X-Appwrite-Session", out var values) ? values.FirstOrDefault() : null);
+            if (!string.IsNullOrWhiteSpace(session))
+            {
+                await jsRuntime.InvokeVoidAsync("localStorage.setItem", "preptube.appwrite.session", session);
+            }
+        }
         return response.IsSuccessStatusCode;
     }
 
@@ -69,6 +87,8 @@ public sealed class AppwriteClient
     {
         using var request = CreateRequest(HttpMethod.Delete, "/account/sessions/current");
         using var response = await httpClient.SendAsync(request, cancellationToken);
+        session = null;
+        await jsRuntime.InvokeVoidAsync("localStorage.removeItem", "preptube.appwrite.session");
         return response.IsSuccessStatusCode;
     }
 
@@ -119,6 +139,10 @@ public sealed class AppwriteClient
     {
         var request = new HttpRequestMessage(method, $"{endpoint}{path}");
         request.Headers.Add("X-Appwrite-Project", projectId);
+        if (!string.IsNullOrWhiteSpace(session))
+        {
+            request.Headers.Add("X-Appwrite-Session", session);
+        }
         request.SetBrowserRequestCredentials(BrowserRequestCredentials.Include);
         return request;
     }
@@ -137,6 +161,9 @@ public sealed record AppwriteUser(
 public sealed record AppwriteFile(
     [property: JsonPropertyName("$id")] string Id,
     [property: JsonPropertyName("name")] string Name);
+
+public sealed record AppwriteSession(
+    [property: JsonPropertyName("secret")] string? Secret);
 
 internal sealed record AppwriteDocumentList(
     [property: JsonPropertyName("documents")] List<AppwriteDocument> Documents);

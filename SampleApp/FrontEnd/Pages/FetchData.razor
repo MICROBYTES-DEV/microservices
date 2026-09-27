@@ -239,6 +239,7 @@ else
 
         try
         {
+            await Appwrite.InitializeAsync();
             currentUser = await Appwrite.GetCurrentUserAsync();
             var paperDocuments = await Appwrite.ListDocumentsAsync(Appwrite.PapersCollectionId);
             var activityDocuments = await Appwrite.ListDocumentsAsync(Appwrite.ActivitiesCollectionId);

@@ -2,11 +2,11 @@
 @inject FrontEnd.Services.AppwriteClient Appwrite
 @inject NavigationManager Navigation
 
-<PageTitle>Sign in - PrepTube</PageTitle>
+<PageTitle>Sign in - PYQ Parking</PageTitle>
 
 <div class="login-page">
     <div class="login-atmosphere"></div>
-    <a class="login-brand" href="/"><span class="brand-mark">P</span><span>PrepTube</span></a>
+    <a class="login-brand" href="/"><span class="brand-mark">P</span><span>PYQ Parking</span></a>
     <main class="login-shell">
         <section class="login-intro">
             <span class="login-kicker">PYQ playground</span>
@@ -15,7 +15,7 @@
             <div class="login-proof"><span class="proof-avatars"><i>AK</i><i>RM</i><i>NS</i></span><span><strong>12k+ learners</strong><small>building their edge daily</small></span></div>
         </section>
         <section class="login-card" aria-labelledby="login-title">
-            <div class="login-card-head"><span class="login-card-label">@(isSignUp ? "Create account" : "Welcome back")</span><h2 id="login-title">@(isSignUp ? "Join PrepTube" : "Sign in to PrepTube")</h2><p>@(isSignUp ? "Create an account to save your progress." : "Continue your learning streak.")</p></div>
+            <div class="login-card-head"><span class="login-card-label">@(isSignUp ? "Create account" : "Welcome back")</span><h2 id="login-title">@(isSignUp ? "Join PYQ Parking" : "Sign in to PYQ Parking")</h2><p>@(isSignUp ? "Create an account to save your progress." : "Continue your learning streak.")</p></div>
             @if (showMessage)
             {
                 <div class="login-message">@message</div>
@@ -32,7 +32,7 @@
             </form>
             <div class="login-divider"><span>or continue with</span></div>
             <div class="social-buttons"><button type="button" @onclick="SocialLogin">Google</button><button type="button" @onclick="SocialLogin">Phone</button></div>
-            <p class="signup-prompt">@(isSignUp ? "Already have an account?" : "New to PrepTube?") <button type="button" class="link-button" @onclick="ToggleMode">@(isSignUp ? "Sign in" : "Create an account")</button></p>
+            <p class="signup-prompt">@(isSignUp ? "Already have an account?" : "New to PYQ Parking?") <button type="button" class="link-button" @onclick="ToggleMode">@(isSignUp ? "Sign in" : "Create an account")</button></p>
         </section>
     </main>
     <footer class="login-footer"><span>Private by design</span><span>Secure learning workspace</span><span>Need help?</span></footer>

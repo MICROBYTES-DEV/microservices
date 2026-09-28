@@ -159,7 +159,7 @@ else
 
         Notifications.Insert(0, new NotificationItem($"{interest} alert enabled", $"You will now see new {interest} PYQs and practice updates.", "Just now", true));
         unreadCount++;
-        await JS.InvokeVoidAsync("prepTubeNotifications.show", $"{interest} updates enabled", $"New {interest} PYQs will appear in PrepTube.");
+        await JS.InvokeVoidAsync("prepTubeNotifications.show", $"{interest} updates enabled", $"New {interest} PYQs will appear in PYQ Parking.");
     }
     private async Task EnableBrowserNotifications() => await JS.InvokeVoidAsync("prepTubeNotifications.enable");
     private async Task UploadPaper()

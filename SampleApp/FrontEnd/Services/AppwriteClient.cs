@@ -1,4 +1,5 @@
 using System.Net.Http.Json;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Components.WebAssembly.Http;
 using Microsoft.AspNetCore.Components.Forms;
@@ -17,6 +18,7 @@ public sealed class AppwriteClient
     private readonly string storageBucketId;
     private readonly IJSRuntime jsRuntime;
     private string? session;
+    public string? LastError { get; private set; }
 
     public AppwriteClient(HttpClient httpClient, IConfiguration configuration, IJSRuntime jsRuntime)
     {
@@ -42,7 +44,14 @@ public sealed class AppwriteClient
 
     public async Task InitializeAsync()
     {
-        session = await jsRuntime.InvokeAsync<string?>("localStorage.getItem", "preptube.appwrite.session");
+        try
+        {
+            session = await jsRuntime.InvokeAsync<string?>("localStorage.getItem", "preptube.appwrite.session");
+        }
+        catch (JSException)
+        {
+            session = null;
+        }
     }
 
     public async Task<bool> SignInAsync(string email, string password, CancellationToken cancellationToken = default)
@@ -52,12 +61,17 @@ public sealed class AppwriteClient
         using var response = await httpClient.SendAsync(request, cancellationToken);
         if (response.IsSuccessStatusCode)
         {
+            LastError = null;
             var sessionResponse = await response.Content.ReadFromJsonAsync<AppwriteSession>(cancellationToken);
             session = sessionResponse?.Secret ?? (response.Headers.TryGetValues("X-Appwrite-Session", out var values) ? values.FirstOrDefault() : null);
             if (!string.IsNullOrWhiteSpace(session))
             {
                 await jsRuntime.InvokeVoidAsync("localStorage.setItem", "preptube.appwrite.session", session);
             }
+        }
+        else
+        {
+            LastError = await ReadErrorAsync(response, cancellationToken);
         }
         return response.IsSuccessStatusCode;
     }
@@ -68,6 +82,7 @@ public sealed class AppwriteClient
         using var response = await httpClient.SendAsync(request, cancellationToken);
         if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
         {
+            await ClearSessionAsync();
             return null;
         }
 
@@ -80,6 +95,10 @@ public sealed class AppwriteClient
         using var request = CreateRequest(HttpMethod.Post, "/account");
         request.Content = JsonContent.Create(new { userId = "unique()", email, password, name });
         using var response = await httpClient.SendAsync(request, cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            LastError = await ReadErrorAsync(response, cancellationToken);
+        }
         return response.IsSuccessStatusCode;
     }
 
@@ -90,6 +109,31 @@ public sealed class AppwriteClient
         session = null;
         await jsRuntime.InvokeVoidAsync("localStorage.removeItem", "preptube.appwrite.session");
         return response.IsSuccessStatusCode;
+    }
+
+    private async Task ClearSessionAsync()
+    {
+        session = null;
+        try
+        {
+            await jsRuntime.InvokeVoidAsync("localStorage.removeItem", "preptube.appwrite.session");
+        }
+        catch (JSException)
+        {
+        }
+    }
+
+    private static async Task<string> ReadErrorAsync(HttpResponseMessage response, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var error = await response.Content.ReadFromJsonAsync<AppwriteError>(cancellationToken);
+            return error?.Message ?? $"Appwrite request failed ({(int)response.StatusCode}).";
+        }
+        catch (JsonException)
+        {
+            return $"Appwrite request failed ({(int)response.StatusCode}).";
+        }
     }
 
     public async Task<IReadOnlyList<AppwriteDocument>> ListDocumentsAsync(
@@ -164,6 +208,9 @@ public sealed record AppwriteFile(
 
 public sealed record AppwriteSession(
     [property: JsonPropertyName("secret")] string? Secret);
+
+public sealed record AppwriteError(
+    [property: JsonPropertyName("message")] string Message);
 
 internal sealed record AppwriteDocumentList(
     [property: JsonPropertyName("documents")] List<AppwriteDocument> Documents);

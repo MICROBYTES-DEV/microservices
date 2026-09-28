@@ -78,12 +78,16 @@
             }
             else
             {
-                message = "Unable to sign in. Check your email and password.";
+                message = Appwrite.LastError ?? "Unable to sign in. Check your email and password.";
             }
         }
         catch (HttpRequestException)
         {
-            message = "Appwrite is unavailable. Check your project configuration.";
+            message = Appwrite.LastError ?? "Appwrite is unavailable. Check your project configuration.";
+        }
+        catch (Exception exception)
+        {
+            message = $"Login failed: {exception.Message}";
         }
         finally
         {

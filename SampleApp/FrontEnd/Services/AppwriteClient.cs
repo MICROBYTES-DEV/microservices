@@ -161,15 +161,20 @@ public sealed class AppwriteClient
 
     private async Task CaptureFallbackCookiesAsync(HttpResponseMessage response)
     {
-        if (response.Headers.TryGetValues("X-Fallback-Cookies", out var values))
+        IEnumerable<string>? values = null;
+        if (response.Headers.TryGetValues("X-Fallback-Cookies", out values) ||
+            response.Headers.TryGetValues("x-fallback-cookies", out values) ||
+            (response.Content?.Headers.TryGetValues("X-Fallback-Cookies", out values) ?? false) ||
+            (response.Content?.Headers.TryGetValues("x-fallback-cookies", out values) ?? false))
         {
-            var cookies = values.FirstOrDefault();
+            var cookies = values?.FirstOrDefault();
             if (!string.IsNullOrWhiteSpace(cookies))
             {
                 fallbackCookies = cookies;
                 try
                 {
                     await jsRuntime.InvokeVoidAsync("localStorage.setItem", "cookieFallback", cookies);
+                    Console.WriteLine("[Appwrite] Successfully saved X-Fallback-Cookies to localStorage.");
                 }
                 catch (JSException)
                 {

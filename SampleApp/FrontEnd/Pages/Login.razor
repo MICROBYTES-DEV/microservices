@@ -63,7 +63,7 @@
                 }
                 else if (await Appwrite.SignInAsync(email, password))
                 {
-                    Navigation.NavigateTo("/");
+                    Navigation.NavigateTo("/", forceLoad: true);
                     return;
                 }
                 else
@@ -73,7 +73,7 @@
             }
             else if (await Appwrite.SignInAsync(email, password))
             {
-                Navigation.NavigateTo("/");
+                Navigation.NavigateTo("/", forceLoad: true);
                 return;
             }
             else

@@ -17,7 +17,7 @@ public sealed class AppwriteClient
     private readonly string activitiesCollectionId;
     private readonly string storageBucketId;
     private readonly IJSRuntime jsRuntime;
-    private string? session;
+    private string? fallbackCookies;
     public string? LastError { get; private set; }
 
     public AppwriteClient(HttpClient httpClient, IConfiguration configuration, IJSRuntime jsRuntime)
@@ -46,11 +46,13 @@ public sealed class AppwriteClient
     {
         try
         {
-            session = await jsRuntime.InvokeAsync<string?>("localStorage.getItem", "preptube.appwrite.session");
+            fallbackCookies = await jsRuntime.InvokeAsync<string?>("localStorage.getItem", "cookieFallback");
+            // Clean up legacy session key if present
+            await jsRuntime.InvokeVoidAsync("localStorage.removeItem", "preptube.appwrite.session");
         }
         catch (JSException)
         {
-            session = null;
+            fallbackCookies = null;
         }
     }
 
@@ -67,20 +69,15 @@ public sealed class AppwriteClient
         }
 
         await ClearSessionAsync();
+
         using var request = CreateRequest(HttpMethod.Post, "/account/sessions/email");
         request.Content = JsonContent.Create(new { email, password });
         using var response = await httpClient.SendAsync(request, cancellationToken);
+
         if (response.IsSuccessStatusCode)
         {
             LastError = null;
-            var sessionResponse = await response.Content.ReadFromJsonAsync<AppwriteSession>(cancellationToken);
-            session = !string.IsNullOrWhiteSpace(sessionResponse?.Secret)
-                ? sessionResponse.Secret
-                : sessionResponse?.Id ?? (response.Headers.TryGetValues("X-Appwrite-Session", out var values) ? values.FirstOrDefault() : null);
-            if (!string.IsNullOrWhiteSpace(session))
-            {
-                await jsRuntime.InvokeVoidAsync("localStorage.setItem", "preptube.appwrite.session", session);
-            }
+            await CaptureFallbackCookiesAsync(response);
             return true;
         }
         else
@@ -109,7 +106,12 @@ public sealed class AppwriteClient
             return null;
         }
 
-        response.EnsureSuccessStatusCode();
+        if (!response.IsSuccessStatusCode)
+        {
+            return null;
+        }
+
+        await CaptureFallbackCookiesAsync(response);
         return await response.Content.ReadFromJsonAsync<AppwriteUser>(cancellationToken);
     }
 
@@ -121,28 +123,58 @@ public sealed class AppwriteClient
         if (!response.IsSuccessStatusCode)
         {
             LastError = await ReadErrorAsync(response, cancellationToken);
+            return false;
         }
-        return response.IsSuccessStatusCode;
+        await CaptureFallbackCookiesAsync(response);
+        LastError = null;
+        return true;
     }
 
     public async Task<bool> SignOutAsync(CancellationToken cancellationToken = default)
     {
-        using var request = CreateRequest(HttpMethod.Delete, "/account/sessions/current");
-        using var response = await httpClient.SendAsync(request, cancellationToken);
-        session = null;
-        await jsRuntime.InvokeVoidAsync("localStorage.removeItem", "preptube.appwrite.session");
-        return response.IsSuccessStatusCode;
+        try
+        {
+            using var request = CreateRequest(HttpMethod.Delete, "/account/sessions/current");
+            using var response = await httpClient.SendAsync(request, cancellationToken);
+            await ClearSessionAsync();
+            return response.IsSuccessStatusCode;
+        }
+        catch
+        {
+            await ClearSessionAsync();
+            return true;
+        }
     }
 
     private async Task ClearSessionAsync()
     {
-        session = null;
+        fallbackCookies = null;
         try
         {
+            await jsRuntime.InvokeVoidAsync("localStorage.removeItem", "cookieFallback");
             await jsRuntime.InvokeVoidAsync("localStorage.removeItem", "preptube.appwrite.session");
         }
         catch (JSException)
         {
+        }
+    }
+
+    private async Task CaptureFallbackCookiesAsync(HttpResponseMessage response)
+    {
+        if (response.Headers.TryGetValues("X-Fallback-Cookies", out var values))
+        {
+            var cookies = values.FirstOrDefault();
+            if (!string.IsNullOrWhiteSpace(cookies))
+            {
+                fallbackCookies = cookies;
+                try
+                {
+                    await jsRuntime.InvokeVoidAsync("localStorage.setItem", "cookieFallback", cookies);
+                }
+                catch (JSException)
+                {
+                }
+            }
         }
     }
 
@@ -166,6 +198,7 @@ public sealed class AppwriteClient
         using var request = CreateRequest(HttpMethod.Get, $"/databases/{databaseId}/collections/{collectionId}/documents");
         using var response = await httpClient.SendAsync(request, cancellationToken);
         response.EnsureSuccessStatusCode();
+        await CaptureFallbackCookiesAsync(response);
         var result = await response.Content.ReadFromJsonAsync<AppwriteDocumentList>(cancellationToken);
         return result?.Documents ?? [];
     }
@@ -183,6 +216,7 @@ public sealed class AppwriteClient
             LastError = await ReadErrorAsync(response, cancellationToken);
             return false;
         }
+        await CaptureFallbackCookiesAsync(response);
         LastError = null;
         return true;
     }
@@ -206,6 +240,7 @@ public sealed class AppwriteClient
             LastError = await ReadErrorAsync(response, timeout.Token);
             return null;
         }
+        await CaptureFallbackCookiesAsync(response);
         LastError = null;
         return await response.Content.ReadFromJsonAsync<AppwriteFile>(cancellationToken);
     }
@@ -217,9 +252,9 @@ public sealed class AppwriteClient
     {
         var request = new HttpRequestMessage(method, $"{endpoint}{path}");
         request.Headers.Add("X-Appwrite-Project", projectId);
-        if (!string.IsNullOrWhiteSpace(session))
+        if (!string.IsNullOrWhiteSpace(fallbackCookies))
         {
-            request.Headers.Add("X-Appwrite-Session", session);
+            request.Headers.Add("X-Fallback-Cookies", fallbackCookies);
         }
         request.SetBrowserRequestCredentials(BrowserRequestCredentials.Include);
         return request;

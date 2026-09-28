@@ -56,6 +56,7 @@ public sealed class AppwriteClient
 
     public async Task<bool> SignInAsync(string email, string password, CancellationToken cancellationToken = default)
     {
+        await ClearSessionAsync();
         using var request = CreateRequest(HttpMethod.Post, "/account/sessions/email");
         request.Content = JsonContent.Create(new { email, password });
         using var response = await httpClient.SendAsync(request, cancellationToken);

@@ -63,7 +63,7 @@ public sealed class AppwriteClient
         {
             LastError = null;
             var sessionResponse = await response.Content.ReadFromJsonAsync<AppwriteSession>(cancellationToken);
-            session = sessionResponse?.Secret ?? (response.Headers.TryGetValues("X-Appwrite-Session", out var values) ? values.FirstOrDefault() : null);
+            session = sessionResponse?.Id ?? (response.Headers.TryGetValues("X-Appwrite-Session", out var values) ? values.FirstOrDefault() : null);
             if (!string.IsNullOrWhiteSpace(session))
             {
                 await jsRuntime.InvokeVoidAsync("localStorage.setItem", "preptube.appwrite.session", session);
@@ -207,6 +207,7 @@ public sealed record AppwriteFile(
     [property: JsonPropertyName("name")] string Name);
 
 public sealed record AppwriteSession(
+    [property: JsonPropertyName("$id")] string? Id,
     [property: JsonPropertyName("secret")] string? Secret);
 
 public sealed record AppwriteError(

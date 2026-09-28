@@ -40,7 +40,7 @@ else
     <section class="hero-row"><div><p class="eyebrow">YOUR STUDY WORKSPACE</p><h1>Build your <span>edge.</span></h1><p class="hero-copy">Pick a paper, find your pattern, and turn every wrong answer into your next advantage.</p></div><div class="streak-card"><div class="streak-icon">@Activities.Count</div><div><strong>Recent activity</strong><span>Synced from Appwrite</span></div></div></section>
     <section class="search-panel"><div class="search-input-wrap"><span class="search-icon">/</span><input @bind="searchTerm" @bind:event="oninput" placeholder="Search by exam, subject, year, topic..." /><kbd>CTRL K</kbd></div><div class="suggestions"><span>Try searching</span><button @onclick="SearchJee">JEE Main physics</button><button @onclick="SearchUpsc">UPSC polity</button><button @onclick="SearchNeet">NEET 2024</button></div></section>
     <div class="filter-row" aria-label="Active filter: @activeTab"><div class="filter-tabs"><button class="selected" @onclick="SelectAll">All papers</button><button @onclick="SelectPracticed">Most practiced</button><button @onclick="SelectNew">New uploads</button></div><button class="filter-button">Filter <span>+</span></button></div>
-    <section class="content-grid"><div class="papers-column"><div class="section-heading"><div><h2>Recommended for you</h2><p>Curated from your recent practice</p></div><a href="?view=all">View all <span>-&gt;</span></a></div>@foreach (var paper in FilteredPapers) { <article class="paper-card"><div class="paper-color @paper.ColorClass"><span>@paper.Code</span></div><div class="paper-main"><div class="paper-meta"><span>@paper.Exam</span><span class="dot">.</span><span>@paper.Year</span><span class="level @paper.LevelClass">@paper.Level</span></div><h3>@paper.Title</h3><p>@paper.Description</p><div class="paper-footer"><span>@paper.Questions questions</span><span class="dot">.</span><span>@paper.Duration min</span><span class="topic-tag">@paper.Topic</span></div></div><div class="paper-actions"><button class="@SaveClass(paper)" title="Save paper" @onclick="() => ToggleSave(paper)">@SaveLabel(paper)</button><button class="open-button" @onclick="() => OpenViewer(paper)">Open paper <span>-&gt;</span></button></div></article> } @if (!FilteredPapers.Any()) { <div class="empty-state">No papers found. Try a broader search.</div> }</div><aside class="activity-panel"><div class="section-heading"><div><h2>Recent activity</h2><p>Your practice trail</p></div><a href="?view=activity">See all</a></div><div class="activity-list">@foreach (var item in Activities) { <div class="activity-item"><span class="activity-dot @item.DotClass"></span><div><strong>@item.Title</strong><span>@item.Detail</span></div><time>@item.When</time></div> }</div><div class="insight-box"><span class="insight-symbol">i</span><div><strong>Small insight</strong><p>You are 18% faster on mechanics than last week.</p></div></div></aside></section>
+    <section class="content-grid"><div class="papers-column"><div class="section-heading"><div><h2>PYQ library</h2><p>@FilteredPapers.Count() papers from Appwrite</p></div><a href="?view=all">View all <span>-&gt;</span></a></div>@foreach (var paper in FilteredPapers) { <article class="paper-card"><div class="paper-color @paper.ColorClass"><span>@paper.Code</span></div><div class="paper-main"><div class="paper-meta"><span>@paper.Course</span><span class="dot">.</span><span>@paper.Topic</span><span class="dot">.</span><span>@paper.Year</span><span class="level @paper.LevelClass">@paper.Level</span></div><h3>@paper.Title</h3><p>@paper.Description</p><div class="paper-footer"><span>@paper.Semester</span><span class="dot">.</span><span>@paper.Questions questions</span><span class="dot">.</span><span>@paper.Duration min</span></div></div><div class="paper-actions"><button class="@SaveClass(paper)" title="Save paper" @onclick="() => ToggleSave(paper)">@SaveLabel(paper)</button><button class="open-button" @onclick="() => OpenViewer(paper)">Open paper <span>-&gt;</span></button></div></article> } @if (!FilteredPapers.Any()) { <div class="empty-state">No PYQs found. Try another course, subject, semester, or year.</div> }</div><aside class="activity-panel"><div class="section-heading"><div><h2>Recent activity</h2><p>Your practice trail</p></div><a href="?view=activity">See all</a></div><div class="activity-list">@foreach (var item in Activities) { <div class="activity-item"><span class="activity-dot @item.DotClass"></span><div><strong>@item.Title</strong><span>@item.Detail</span></div><time>@item.When</time></div> }</div><div class="insight-box"><span class="insight-symbol">i</span><div><strong>Synced library</strong><p>Your list updates from Appwrite after every upload.</p></div></div></aside></section>
     }
 </div>
 }
@@ -49,7 +49,7 @@ else
 
 @if (showUploadModal)
 {
-    <div class="modal-backdrop" @onclick="CloseUpload"><section class="utility-modal upload-modal" @onclick:stopPropagation><header><div><span class="modal-kicker">Community library</span><h2>Upload a PYQ</h2><p>Add accurate metadata so other students can find it quickly.</p></div><button class="close-button" @onclick="CloseUpload">x</button></header><form class="upload-form" @onsubmit="UploadPaper" @onsubmit:preventDefault><div class="form-grid"><label>Exam<input @bind="uploadExam" placeholder="JEE Main" required /></label><label>Subject<input @bind="uploadSubject" placeholder="Physics" required /></label><label>Year<input @bind="uploadYear" type="number" min="1990" max="2026" placeholder="2025" required /></label><label>Difficulty<select @bind="uploadLevel"><option>Advanced</option><option>Moderate</option><option>Starter</option></select></label></div><label>Paper title<input @bind="uploadTitle" placeholder="Physics | January Session" required /></label><label>Description<textarea @bind="uploadDescription" placeholder="Short description for search and preview" rows="3"></textarea></label><div class="form-grid"><label>Questions<input @bind="uploadQuestions" type="number" min="1" placeholder="30" required /></label><label>Duration (minutes)<input @bind="uploadDuration" type="number" min="1" placeholder="60" required /></label></div><div class="upload-dropzone"><strong>Choose the PYQ PDF</strong><InputFile OnChange="SelectPdf" accept="application/pdf" /><span>@(selectedPdf?.Name ?? "Tap here to choose a PDF, up to 50 MB")</span></div>@if (!string.IsNullOrWhiteSpace(uploadError)) { <p class="upload-error">@uploadError</p> }<div class="modal-actions"><button type="button" class="secondary-button" @onclick="CloseUpload">Cancel</button><button type="submit" class="primary-button" disabled="@isUploading">@(isUploading ? "Uploading PDF..." : "Add to PYQ library")</button></div></form></section></div>
+    <div class="modal-backdrop" @onclick="CloseUpload"><section class="utility-modal upload-modal" @onclick:stopPropagation><header><div><span class="modal-kicker">Community library</span><h2>Upload a PYQ</h2><p>Course, subject, semester and year are required for discovery.</p></div><button class="close-button" @onclick="CloseUpload">x</button></header><form class="upload-form" @onsubmit="UploadPaper" @onsubmit:preventDefault><div class="form-grid"><label>Course<input @bind="uploadCourse" placeholder="B.Tech CSE" required /></label><label>Subject<input @bind="uploadSubject" placeholder="Data Structures" required /></label><label>Semester<input @bind="uploadSemester" placeholder="Semester 3" required /></label><label>Year<input @bind="uploadYear" type="number" min="1990" max="2035" placeholder="2025" required /></label></div><label>Paper title<input @bind="uploadTitle" placeholder="Data Structures End Semester" required /></label><label>Description<textarea @bind="uploadDescription" placeholder="What does this paper cover?" rows="3" required></textarea></label><div class="form-grid"><label>Questions<input @bind="uploadQuestions" type="number" min="1" placeholder="30" required /></label><label>Duration (minutes)<input @bind="uploadDuration" type="number" min="1" placeholder="60" required /></label></div><label>Difficulty<select @bind="uploadLevel"><option>Advanced</option><option>Moderate</option><option>Starter</option></select></label><div class="upload-dropzone"><strong>Choose the PYQ PDF</strong><InputFile OnChange="SelectPdf" accept="application/pdf" /><span>@(selectedPdf?.Name ?? "Tap here to choose a PDF, up to 50 MB")</span></div>@if (isUploading) { <div class="upload-progress" role="status"><span class="upload-progress-bar"></span><strong>@uploadStatus</strong><small>Saving directly to Appwrite</small></div> } @if (!string.IsNullOrWhiteSpace(uploadError)) { <p class="upload-error">@uploadError</p> }<div class="modal-actions"><button type="button" class="secondary-button" @onclick="CloseUpload">Cancel</button><button type="submit" class="primary-button" disabled="@isUploading">@(isUploading ? uploadStatus : "Upload to library")</button></div></form></section></div>
 }
 
 @if (showAccountModal)
@@ -73,7 +73,9 @@ else
     private string searchTerm = string.Empty;
     private string activeTab = "All papers";
     private string uploadExam = string.Empty;
+    private string uploadCourse = string.Empty;
     private string uploadSubject = string.Empty;
+    private string uploadSemester = string.Empty;
     private string uploadYear = string.Empty;
     private string uploadTitle = string.Empty;
     private string uploadDescription = string.Empty;
@@ -82,6 +84,7 @@ else
     private string uploadLevel = "Moderate";
     private IBrowserFile? selectedPdf;
     private string uploadError = string.Empty;
+    private string uploadStatus = "Uploading PDF...";
     private bool isUploading;
     private readonly List<string> Interests = ["Physics", "Biology", "Polity", "Mathematics"];
     private readonly HashSet<string> selectedInterests = ["Physics"];
@@ -175,6 +178,7 @@ else
 
         isUploading = true;
         uploadError = string.Empty;
+        uploadStatus = "Uploading PDF to Appwrite Storage...";
         var levelClass = uploadLevel.ToLowerInvariant();
         var code = string.IsNullOrWhiteSpace(uploadExam) ? "P" : uploadExam[..1].ToUpperInvariant();
 
@@ -187,11 +191,14 @@ else
                 return;
             }
 
-            var paper = new Paper(uploadExam, uploadYear, uploadTitle, uploadDescription, uploadSubject, uploadQuestions, uploadDuration, code, "blue", uploadLevel, levelClass, file.Id);
+            uploadStatus = "Saving PYQ metadata...";
+            var paper = new Paper(uploadExam, uploadCourse, uploadYear, uploadSemester, uploadTitle, uploadDescription, uploadSubject, uploadQuestions, uploadDuration, code, "blue", uploadLevel, levelClass, file.Id);
             var created = await Appwrite.CreateDocumentAsync(Appwrite.PapersCollectionId, new
             {
                 exam = paper.Exam,
+                course = paper.Course,
                 year = paper.Year,
+                semester = paper.Semester,
                 title = paper.Title,
                 description = paper.Description,
                 topic = paper.Topic,
@@ -214,7 +221,7 @@ else
             Papers.Insert(0, paper);
             searchTerm = uploadSubject;
             CloseUpload();
-            uploadExam = uploadSubject = uploadYear = uploadTitle = uploadDescription = uploadQuestions = uploadDuration = string.Empty;
+            uploadExam = uploadCourse = uploadSubject = uploadSemester = uploadYear = uploadTitle = uploadDescription = uploadQuestions = uploadDuration = string.Empty;
             selectedPdf = null;
         }
         catch (HttpRequestException)
@@ -285,7 +292,7 @@ else
         var exam = ReadString(data, "exam");
         var title = ReadString(data, "title");
         var level = ReadString(data, "level", "Moderate");
-        return new Paper(exam, ReadString(data, "year"), title, ReadString(data, "description"), ReadString(data, "topic"), ReadString(data, "questions"), ReadString(data, "duration"), ReadString(data, "code", exam.Length > 0 ? exam[..1].ToUpperInvariant() : "P"), ReadString(data, "colorClass", "blue"), level, ReadString(data, "levelClass", level.ToLowerInvariant()), ReadString(data, "storageFileId"));
+        return new Paper(exam, ReadString(data, "course"), ReadString(data, "year"), ReadString(data, "semester"), title, ReadString(data, "description"), ReadString(data, "topic"), ReadString(data, "questions"), ReadString(data, "duration"), ReadString(data, "code", exam.Length > 0 ? exam[..1].ToUpperInvariant() : "P"), ReadString(data, "colorClass", "blue"), level, ReadString(data, "levelClass", level.ToLowerInvariant()), ReadString(data, "storageFileId"));
     }
 
     private static Activity MapActivity(FrontEnd.Services.AppwriteDocument document)
@@ -315,7 +322,7 @@ else
             StateHasChanged();
         }
     }
-    private record Paper(string Exam, string Year, string Title, string Description, string Topic, string Questions, string Duration, string Code, string ColorClass, string Level, string LevelClass, string? StorageFileId = null);
+    private record Paper(string Exam, string Course, string Year, string Semester, string Title, string Description, string Topic, string Questions, string Duration, string Code, string ColorClass, string Level, string LevelClass, string? StorageFileId = null);
     private record Activity(string Title, string Detail, string When, string DotClass);
     private record NotificationItem(string Title, string Body, string When, bool IsNew);
 }

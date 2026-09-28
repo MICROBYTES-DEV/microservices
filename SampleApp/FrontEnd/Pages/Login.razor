@@ -59,7 +59,7 @@
             {
                 if (!await Appwrite.CreateAccountAsync(email, password, name))
                 {
-                    message = "Unable to create the account. The email may already be registered.";
+                    message = Appwrite.LastError ?? "Unable to create the account. The email may already be registered.";
                 }
                 else if (await Appwrite.SignInAsync(email, password))
                 {
@@ -68,7 +68,7 @@
                 }
                 else
                 {
-                    message = "Account created. Sign in to continue.";
+                    message = Appwrite.LastError ?? "Account created. Sign in to continue.";
                 }
             }
             else if (await Appwrite.SignInAsync(email, password))

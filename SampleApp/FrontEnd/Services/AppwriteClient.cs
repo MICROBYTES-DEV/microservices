@@ -56,6 +56,16 @@ public sealed class AppwriteClient
 
     public async Task<bool> SignInAsync(string email, string password, CancellationToken cancellationToken = default)
     {
+        try
+        {
+            using var delRequest = CreateRequest(HttpMethod.Delete, "/account/sessions/current");
+            await httpClient.SendAsync(delRequest, cancellationToken);
+        }
+        catch
+        {
+            // Ignore if no active session
+        }
+
         await ClearSessionAsync();
         using var request = CreateRequest(HttpMethod.Post, "/account/sessions/email");
         request.Content = JsonContent.Create(new { email, password });
@@ -64,17 +74,29 @@ public sealed class AppwriteClient
         {
             LastError = null;
             var sessionResponse = await response.Content.ReadFromJsonAsync<AppwriteSession>(cancellationToken);
-            session = sessionResponse?.Id ?? (response.Headers.TryGetValues("X-Appwrite-Session", out var values) ? values.FirstOrDefault() : null);
+            session = !string.IsNullOrWhiteSpace(sessionResponse?.Secret)
+                ? sessionResponse.Secret
+                : sessionResponse?.Id ?? (response.Headers.TryGetValues("X-Appwrite-Session", out var values) ? values.FirstOrDefault() : null);
             if (!string.IsNullOrWhiteSpace(session))
             {
                 await jsRuntime.InvokeVoidAsync("localStorage.setItem", "preptube.appwrite.session", session);
             }
+            return true;
         }
         else
         {
             LastError = await ReadErrorAsync(response, cancellationToken);
+            if (LastError.Contains("already exists", StringComparison.OrdinalIgnoreCase))
+            {
+                var currentUser = await GetCurrentUserAsync(cancellationToken);
+                if (currentUser is not null)
+                {
+                    LastError = null;
+                    return true;
+                }
+            }
+            return false;
         }
-        return response.IsSuccessStatusCode;
     }
 
     public async Task<AppwriteUser?> GetCurrentUserAsync(CancellationToken cancellationToken = default)
@@ -156,13 +178,19 @@ public sealed class AppwriteClient
         using var request = CreateRequest(HttpMethod.Post, $"/databases/{databaseId}/collections/{collectionId}/documents");
         request.Content = JsonContent.Create(new { documentId = "unique()", data });
         using var response = await httpClient.SendAsync(request, cancellationToken);
-        return response.IsSuccessStatusCode;
+        if (!response.IsSuccessStatusCode)
+        {
+            LastError = await ReadErrorAsync(response, cancellationToken);
+            return false;
+        }
+        LastError = null;
+        return true;
     }
 
     public async Task<AppwriteFile?> UploadPdfAsync(IBrowserFile file, CancellationToken cancellationToken = default)
     {
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        timeout.CancelAfter(TimeSpan.FromSeconds(45));
+        timeout.CancelAfter(TimeSpan.FromSeconds(60));
         await using var stream = file.OpenReadStream(50 * 1024 * 1024, timeout.Token);
         using var content = new MultipartFormDataContent();
         content.Add(new StringContent("unique()"), "fileId");
@@ -173,7 +201,12 @@ public sealed class AppwriteClient
         using var request = CreateRequest(HttpMethod.Post, $"/storage/buckets/{storageBucketId}/files");
         request.Content = content;
         using var response = await httpClient.SendAsync(request, timeout.Token);
-        response.EnsureSuccessStatusCode();
+        if (!response.IsSuccessStatusCode)
+        {
+            LastError = await ReadErrorAsync(response, timeout.Token);
+            return null;
+        }
+        LastError = null;
         return await response.Content.ReadFromJsonAsync<AppwriteFile>(cancellationToken);
     }
 

@@ -186,7 +186,7 @@ else
             var file = await Appwrite.UploadPdfAsync(selectedPdf);
             if (file is null)
             {
-                uploadError = "The PDF could not be uploaded to Appwrite Storage.";
+                uploadError = Appwrite.LastError ?? "The PDF could not be uploaded to Appwrite Storage.";
                 return;
             }
 
@@ -213,7 +213,7 @@ else
 
             if (!created)
             {
-                dataError = "The paper could not be saved to Appwrite.";
+                uploadError = Appwrite.LastError ?? "The paper could not be saved to Appwrite.";
                 return;
             }
 
@@ -308,7 +308,7 @@ else
 
     protected override async Task OnInitializedAsync() => await LoadWorkspaceAsync();
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    protected override void OnAfterRender(bool firstRender)
     {
         if (firstRender)
         {
